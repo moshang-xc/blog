@@ -1,0 +1,33 @@
+1. 显示当前目录路径：pwd 
+2. 切换到d盘：cd d: 
+3. 后退到上一级目录：cd .. 
+4. 把这个目录变成Git可以管理的仓库：git init 
+5. 显示当前路径下面的文件：ls 
+   显示当前路径下面的文件包括隐藏文件：ls -as
+6. 把文件添加到git仓库暂存区：git add xx.xx 
+7. 提交暂存区文件：git commit -m "wrote a readme file"（-m后面输入的是本次提交的说明，commit一次可以提交多个文件）
+8. 检查仓库文件状态 是否被修改等：git status 
+9. 比较版本差别：git diff HEAD -- readme.txt 
+10. 显示仓库的操作记录：git log（可以加上 --pretty=oneline，在一行显示记录）
+11. 版本回退：git reset --hard HEAD^ （例：--hard HEAD^^,HEAD~100等等（同步修改本地文件） 同时修改工作区）
+    清空暂存区的修改：git reset head readme.txt （不修改工作区）
+12. 输出文件内容：cat readme.txt 
+13. 输出每次操作的git id 号：git reflog 
+14. 丢弃工作区的修改：git checkout -- readme.txt （让这个文件回到最近一次git commit或git add时的状态）
+15. 删除文件：git rm text.txt 
+
+-------------------------------- GitHub操作 ------------------------------
+
+16. 关联GitHub上面的远程库：git remote add origin https://github.com/moshang-xc/learngit.git 
+17. 把本地库的所有内容推送到远程库上：git push -u origin master （-u用于第一次）
+    把本地master分支的最新修改推送至GitHub：git push origin master 
+18. 克隆git上面的仓库到本地：git clone https://github.com/moshang-xc/gitskills.git 
+
+-------------------------------- Git分支 -----------------------------
+
+19. 查看分支：git branch
+20. 创建分支：git branch <name>
+21. 切换分支：git checkout <name>
+22. 创建+切换分支：git checkout -b <name>
+23. 合并某分支到当前分支：git merge <name>
+24. 删除分支：git branch -d <name>
