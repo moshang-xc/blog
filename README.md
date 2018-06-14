@@ -152,8 +152,37 @@ function getInternet(){
 } 
 ```
 
+## 13. 流浪器视口大小获取
 
-## 13. 强制移动端页面横屏显示
+### 1、获取浏览器窗口的可视区域的宽度
+```
+function getViewPortWidth() {
+    return document.documentElement.clientWidth || document.body.clientWidth;
+}
+```
+ 
+### 2、获取浏览器窗口的可视区域的高度
+```
+function getViewPortHeight() {
+    return document.documentElement.clientHeight || document.body.clientHeight;
+}
+```
+ 
+### 3、获取浏览器窗口水平滚动条的位置
+```
+function getScrollLeft() {
+    return document.documentElement.scrollLeft || document.body.scrollLeft;
+}
+```
+ 
+### 4、获取浏览器窗口垂直滚动条的位置
+```
+function getScrollTop() {
+    return document.documentElement.scrollTop || document.body.scrollTop;
+}
+```
+
+## 14. 强制移动端页面横屏显示
 
 ```javascript
 $( window ).on( "orientationchange", function( event ) {
@@ -165,7 +194,7 @@ $( window ).on( "orientationchange", function( event ) {
 });
 ```
 
-## 14. 电脑端页面全屏显示
+## 15. 电脑端页面全屏显示
 
 ```javascript
 function fullscreen(element) {
@@ -182,7 +211,7 @@ function fullscreen(element) {
 ```
 
 
-## 15. 获取上传文件大小
+## 16. 获取上传文件大小
 
 ```html
 <input type="file" id="filePath" onchange="getFileSize(this)"/>
@@ -212,7 +241,7 @@ function getFileSize(obj){
 }
 ```
 
-## 16. 限制上传文件类型
+## 17. 限制上传文件类型
 
 ### 1、高版本浏览器
 
