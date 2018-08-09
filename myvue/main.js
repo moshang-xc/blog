@@ -4,4 +4,6 @@ let vue = new Vue({
     data: {
         message: 'vue双向绑定实例'
     }
-})
+});
+
+window.vue = vue;

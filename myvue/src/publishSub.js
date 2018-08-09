@@ -1,12 +1,13 @@
 // 发布订阅模式
-class Publish(){
-    constructor(){
+class Publish {
+    static target = null;
+    constructor() {
         this.list = [];
     }
-    subscribe(target){
+    subscribe(target) {
         this.list.push(target);
     }
-    emit(){
+    emit() {
         this.list.forEach(monitor => {
             monitor.update && monitor.update();
         });

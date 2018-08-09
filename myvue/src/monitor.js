@@ -1,6 +1,6 @@
 // 监听者
-class Monitor{
-    constructor(node, field, vm){
+class Monitor {
+    constructor(node, field, vm) {
         this.node = node;
         this.field = field;
         this.vm = vm;
@@ -8,7 +8,7 @@ class Monitor{
         this.update();
     }
 
-    update(){
+    update() {
         this.node.nodeValue = this.vm[this.field];
     }
 }
