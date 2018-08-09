@@ -1,8 +1,8 @@
 import Compiler from './compiler';
 import Observer from './observer';
 
-class Vue{
-    constructor(option){
+class Vue {
+    constructor(option) {
         this.$option = option || {};
         this._data = option.data;
         this.$el = option.el;
@@ -13,14 +13,14 @@ class Vue{
         new Observer(this._data);
     }
 
-    _proxy(){
+    _proxy() {
         Object.keys(this._data).forEach(key => {
             Object.defineProperty(this, key, {
-                get(){
+                get() {
                     return this._data[key];
-                }
-                set(val){
-                    if(this._data[key] !== val){
+                },
+                set(val) {
+                    if (this._data[key] !== val) {
                         this._data[key] = val;
                     }
                 }
