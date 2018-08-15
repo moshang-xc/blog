@@ -7,7 +7,6 @@ class Monitor {
         this.vm = vm;
         Publish.target = this;
         // 首次加载也需要进行赋值操作
-        console.log('monitor');
         this.update();
         Publish.target = null;
     }

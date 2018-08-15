@@ -23,6 +23,7 @@ class Observer {
                         return;
                     }
                     val = newVal;
+                    // 通知订阅者
                     pub.emit();
                 }
             });
