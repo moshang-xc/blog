@@ -73,9 +73,11 @@ class Publish {
     constructor() {
         this.list = [];
     }
+
     subscribe(target) {
         this.list.push(target);
     }
+
     emit() {
         this.list.forEach(monitor => {
             monitor.update && monitor.update();
@@ -94,6 +96,7 @@ Publish.target = null;
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_vue__ = __webpack_require__(2);
+
 
 let vue = new __WEBPACK_IMPORTED_MODULE_0__src_vue__["a" /* default */]({
     el: '#app',
@@ -125,6 +128,8 @@ class Vue {
         this._proxy();
         new __WEBPACK_IMPORTED_MODULE_1__observer__["a" /* default */](this._data);
         new __WEBPACK_IMPORTED_MODULE_0__compiler__["a" /* default */](this.$el, this.vm);
+
+
     }
 
     _proxy() {
@@ -191,6 +196,7 @@ class Compiler {
                             });
                         }
                     } else {
+                        // 处理文本内容
                         child.appendChild(this._compile(child));
                     }
                     break;
@@ -253,7 +259,6 @@ class Monitor {
         this.vm = vm;
         __WEBPACK_IMPORTED_MODULE_0__publish__["a" /* default */].target = this;
         // 首次加载也需要进行赋值操作
-        console.log('monitor');
         this.update();
         __WEBPACK_IMPORTED_MODULE_0__publish__["a" /* default */].target = null;
     }
@@ -308,6 +313,7 @@ class Observer {
                         return;
                     }
                     val = newVal;
+                    // 通知订阅者
                     pub.emit();
                 }
             });
