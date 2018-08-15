@@ -1,4 +1,5 @@
 import Vue from './src/vue';
+
 let vue = new Vue({
     el: '#app',
     data: {
