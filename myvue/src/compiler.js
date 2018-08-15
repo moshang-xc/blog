@@ -38,6 +38,7 @@ class Compiler {
                             });
                         }
                     } else {
+                        // 处理文本内容
                         child.appendChild(this._compile(child));
                     }
                     break;
