@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>router-demo-moshang-xc</title>
+</head>
+<body>
+    <div class="head">
+        <div class="container">
+            <a href="https://github.com/moshang-xc/router" target="#">moshang-xc</a>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="table-row">
+            <div id="nav-wrapper" class="nav-wrapper table-cell">
+                <ul class="nav">
+                <% for(var i = 0; i < htmlWebpackPlugin.options.navList.length; i++) { %>  
+                    <% var listItem = htmlWebpackPlugin.options.navList[i], css = listItem.list.length > 1 ? "" : "singel", hash = listItem.list[0].item.toLowerCase(); %>
+                    <li class="nav-group <%= css %> <%= listItem.css %>" data-hash="#<%= hash %>"> 
+                        <h3 class="nav-group-title">
+                            <a class="group-text <%= listItem.item %>">
+                                <i class="nav-icon <%= listItem.icon %>"></i>
+                                <label><%= listItem.name %></label>
+                            </a>
+                        </h3>
+                        <ul class="item-wrapper" id="<%= listItem.item %>">
+                            <% for(var j = 0; j < listItem.list.length; j++){ %>
+                            <li class="nav-item <%= listItem.list[j].item %>">
+                                <% if(listItem.list[j].showHelp && listItem.list[j].hasToolBar){ %>
+                                <a href="#<%= listItem.list[j].item.toLowerCase() %>" data-help="1" data-save="1" class="item-text"><%= listItem.list[j].name %></a>
+                                <% } else if(listItem.list[j].showHelp){ %>
+                                <a href="#<%= listItem.list[j].item.toLowerCase() %>" data-help="1" class="item-text"><%= listItem.list[j].name %></a>
+                                <% } else if(listItem.list[j].hasToolBar){ %>
+                                <a href="#<%= listItem.list[j].item.toLowerCase() %>" data-save="1" class="item-text"><%= listItem.list[j].name %></a>
+                                <% } else { %>
+                                <a href="#<%= listItem.list[j].item.toLowerCase() %>" class="item-text"><%= listItem.list[j].name %></a>
+                                <% } %>
+                            </li> 
+                            <% } %>
+                        </ul>
+                    </li>
+                <% } %>
+                </ul>
+                <div class="index-footer">
+                    <div class="copyright">Copyright© 2018</div>
+                    <div class="copyright"><a href="https://github.com/moshang-xc/router" target="#">moshang-xc</a></div>
+                </div>
+            </div>
+            <div class="table-cell color-cell"></div>
+            <div class="table-cell content" id="content">
+            </div>
+        </div>
+    </div>
+    <script src="./common/jquery.js"></script>
+</body>
+</html>
