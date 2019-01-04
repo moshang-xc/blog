@@ -14,6 +14,11 @@ npm config set registry https://registry.npm.taobao.org
 ```
 > 以后 `npm install express` 默认使用指定（淘宝）镜像
 
+设置回原版本
+```
+npm config set registry http://registry.npmjs.org 
+```
+
 ## 3、使用淘宝 NPM 镜像（参考 [http://www.runoob.com/nodejs/nodejs-npm.html](http://www.runoob.com/nodejs/nodejs-npm.html)）
 
 命令行输入 
