@@ -1,8 +1,10 @@
-const quickSort = require('./quickSort');
-const bubbleSort = require('./bubbleSort');
-const insertSort = require('./insertSort');
-const selectSort = require('./selectSort');
-const mergeSort = require('./mergeSort');
+const {
+    bubbleSort,
+    quickSort,
+    selectSort,
+    mergeSort,
+    insertSort
+} = require('./index');
 
 //冒泡排序
 let arr = [9, 3, 6, 7, 1, 2, 1, 3],
@@ -29,10 +31,5 @@ test('归并排序', () => {
 
 arr = [9, 3, 6, 7, 1, 2, 1, 3];
 test('快速排序1', () => {
-    expect(quickSort.quickSort(arr)).toEqual(arrSorted);
-});
-
-arr = [9, 3, 6, 7, 1, 2, 1, 3];
-test('快速排序2', () => {
-    expect(quickSort.quickSort1(arr)).toEqual(arrSorted);
+    expect(quickSort(arr)).toEqual(arrSorted);
 });
