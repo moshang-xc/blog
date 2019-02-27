@@ -75,9 +75,21 @@ function bestSolution(glodNum, peoNum, golds, perPeo) {
     }
     return result[peoNum];
 }
-// let glods = [350, 100, 200, 500, 400],
-//     perPelple = [4, 1, 2, 4, 4];
-// bestSolution(3, 5, glods, perPelple);
+
+/**
+ * 最少硬币问题
+ * 例如：有硬币[1,2,5,10,20]的硬币，给定一个数N，怎么样用最少个数的硬币凑成N
+ */
+function minCoin(coin, n) {
+    if (n <= 0) {
+        return 0;
+    }
+    if (coin.includes(n)) {
+        return 1;
+    }
+
+    return Math.min(minCoin()) + 1;
+}
 
 module.exports = {
     runStep,
