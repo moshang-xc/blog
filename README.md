@@ -1,5 +1,4 @@
 # JS代码片段
-工作中遇到的细节问题归纳
 学习总结归纳
 
 ## 1. 小数取整
@@ -312,4 +311,30 @@ function clearSelections () {
 }
 ```
 
-## 19. 
+## 19. 函数节流
+```js
+function throttle(fn, delay) {
+  let lastTime = 0;
+  return function() {
+    let nowTime = Date.now();
+    if (nowTime - lastTime > delay) {
+      fn.apply(this, arguments);
+      lastTime = nowTime;
+    }
+  };
+}
+```
+
+## 20. 函数防抖动
+```js
+function debounce(fn, delay){
+  let timeout;
+  return function(){
+    timeout && clearTimeout(timeout);
+    timeout = setTimeout(()=> {
+        fn && fn();
+        timeout = null;
+    }, delay);
+  }
+}
+```
