@@ -3,7 +3,7 @@
 
 ## 1. 小数取整
 
-```
+```js
 let x = 1.234;
 ~~x    //1
 x >>   //1
@@ -17,42 +17,42 @@ Math.floor(y)   //-2
 
 ## 2. 生成N位随机数
 
-```
+```js
 let getRandom = n => Math.random().toString().slice(-n);
 ```
 
 ## 3. 生成N-M之间的随机数
 
-```
+```js
 let randomNum = (n,m) => Math.floor(Math.random()*(m-n) + n);
 ```
 
 ## 4. 生成16进制颜色
 
-```
+```js
 let colorCode = '#' +('00000' +(Math .random()* 0x1000000 << 0).toString(16)).slice(- 6);
 ```
 
 ## 5.驼峰命名转下划线
 
-```
+```js
 let humpToUnderline = str => str.match(/^[a-z][a-z0-9]+|[A-Z][a-z0-9]*/g).join('_').toLowerCase();
 ```
 
 ## 6.数组去重
 
-```
+```js
 let unique = arr => [...new Set(arr)]
 ```
 
 ## 7. 时间格式化
 
-```
+```js
 
 ```
 
 ## 8. 检测浏览器是否支持svg
-```
+```js
 function isSupportSVG() { 
     var SVG_NS = 'http://www.w3.org/2000/svg';
     return !!document.createElementNS &&!!document.createElementNS(SVG_NS, 'svg').createSVGRect; 
@@ -60,7 +60,7 @@ function isSupportSVG() {
 ```
 
 ## 9. 检测浏览器是否支持canvas
-```
+```js
 function isSupportCanvas() {
     if(document.createElement('canvas').getContext){
         return true;
@@ -73,7 +73,7 @@ function isSupportCanvas() {
 
 ## 10. 检测是否移动端及浏览器内核
 
-```javascript
+```js
 var browser = { 
     versions: function() { 
         var u = navigator.userAgent; 
@@ -99,7 +99,7 @@ if (browser.versions.mobile() || browser.versions.ios() || browser.versions.andr
 
 ## 11. 检测是否电脑端/移动端
 
-```javascript
+```js
 var browser={ 
     versions:function(){
         var u = navigator.userAgent, app = navigator.appVersion;
@@ -128,7 +128,7 @@ if(browser.versions.mobile || browser.versions.iWinPhone){
 
 ## 12. 检测浏览器内核
 
-```javascript
+```js
 function getInternet(){    
     if(navigator.userAgent.indexOf("MSIE")>0) {    
       return "MSIE";       //IE浏览器  
@@ -154,28 +154,28 @@ function getInternet(){
 ## 13. 浏览器视口大小获取
 
 ### 1、获取浏览器窗口的可视区域的宽度
-```
+```js
 function getViewPortWidth() {
     return document.documentElement.clientWidth || document.body.clientWidth;
 }
 ```
  
 ### 2、获取浏览器窗口的可视区域的高度
-```
+```js
 function getViewPortHeight() {
     return document.documentElement.clientHeight || document.body.clientHeight;
 }
 ```
  
 ### 3、获取浏览器窗口水平滚动条的位置
-```
+```js
 function getScrollLeft() {
     return document.documentElement.scrollLeft || document.body.scrollLeft;
 }
 ```
  
 ### 4、获取浏览器窗口垂直滚动条的位置
-```
+```js
 function getScrollTop() {
     return document.documentElement.scrollTop || document.body.scrollTop;
 }
@@ -183,7 +183,7 @@ function getScrollTop() {
 
 ## 14. 强制移动端页面横屏显示
 
-```javascript
+```js
 $( window ).on( "orientationchange", function( event ) {
     if (event.orientation=='portrait') {
         $('body').css('transform', 'rotate(90deg)');
@@ -195,7 +195,7 @@ $( window ).on( "orientationchange", function( event ) {
 
 ## 15. 电脑端页面全屏显示
 
-```javascript
+```js
 function fullscreen(element) {
     if (element.requestFullscreen) {
         element.requestFullscreen();
@@ -216,7 +216,7 @@ function fullscreen(element) {
 <input type="file" id="filePath" onchange="getFileSize(this)"/>
 ```
 
-```javascript
+```js
 // 兼容IE9低版本
 function getFileSize(obj){
     var filesize;
@@ -260,7 +260,7 @@ function getFileSize(obj){
 <input type="file" id="filePath" onchange="limitTypes()"/>
 ```
 
-```javascript
+```js
 /* 通过扩展名，检验文件格式。
  * @parma filePath{string} 文件路径
  * @parma acceptFormat{Array} 允许的文件类型
@@ -295,7 +295,7 @@ function limitTypes(){
 
 ## 18. 去除选中
 
-```
+```js
 function clearSelections () {
     if (window.getSelector) {
         // 获取选中
@@ -330,11 +330,40 @@ function throttle(fn, delay) {
 function debounce(fn, delay){
   let timeout;
   return function(){
+    let context = this,
+        args = arguments;
+        
     timeout && clearTimeout(timeout);
     timeout = setTimeout(()=> {
-        fn && fn();
-        timeout = null;
+        fn.apply(context, args);
     }, delay);
+  }
+}
+```
+
+## 21. 加强版函数节流
+开始和结束都应该执行对应的操作
+
+```js
+function throttle(fn, delay){
+  let last = 0,
+      timeout;
+       
+  return function(){
+    let context = this,
+        args = arguments,
+        now = Date.now();
+        
+    if (now - last < delay) {
+      timeout && clearTimeout(timeout)
+      timeout = setTimeout(function () {
+        last = now
+        fn.apply(context, args);
+      }, delay);
+    } else {
+        last = now
+        fn.apply(context, args);
+    }
   }
 }
 ```
