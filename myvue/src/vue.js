@@ -4,13 +4,15 @@ import Observer from './observer';
 class Vue {
     constructor(option) {
         this.$option = option || {};
-        this._data = option.data;
+        this._data = this.$option.data;
         this.$el = option.el;
         this.vm = this;
 
         this._proxy();
-        new Compiler(this.$el, this.vm);
         new Observer(this._data);
+        new Compiler(this.$el, this.vm);
+
+
     }
 
     _proxy() {
