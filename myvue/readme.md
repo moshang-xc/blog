@@ -131,10 +131,6 @@ class Compiler {
 }
 ```
 
-```
-
-```
-
 ```js
     _compileText(child) {
         ...
