@@ -178,3 +178,86 @@ function deepClone(obj) {
     }
     return t;
 }
+
+/**
+ * 防抖和节流
+ * 防抖的情况下只会调用一次， 而节流的情况会每隔一定时间调用一次函数
+ */
+function debounce(func, wait, immediate = true) {
+    let timeout, context, args;
+    // 延迟执行函数
+    const later = () => setTimeout(() => {
+        // 延迟函数执行完毕，清空定时器
+        timeout = null
+        // 延迟执行的情况下，函数会在延迟函数中执行
+        // 使用到之前缓存的参数和上下文
+        if (!immediate) {
+            func.apply(context, args);
+            context = args = null;
+        }
+    }, wait);
+    let debounced = function(...params) {
+        if (!timeout) {
+            timeout = later();
+            if (immediate) {
+                //立即执行
+                func.apply(this, params);
+            } else {
+                //闭包
+                context = this;
+                args = params;
+            }
+        } else {
+            clearTimeout(timeout);
+            timeout = later();
+        }
+    }
+    debounced.cancel = function() {
+        clearTimeout(timeout);
+        timeout = null;
+    };
+    return debounced;
+};
+
+// 节流
+function throttle(func, wait, options) {
+    var timeout, context, args, result;
+    var previous = 0;
+    if (!options) options = {};
+
+    var later = function() {
+        previous = options.leading === false ? 0 : Date.now() || new Date().getTime();
+        timeout = null;
+        result = func.apply(context, args);
+        if (!timeout) context = args = null;
+    };
+
+    var throttled = function() {
+        var now = Date.now() || new Date().getTime();
+        if (!previous && options.leading === false) previous = now;
+        var remaining = wait - (now - previous);
+        context = this;
+        args = arguments;
+        if (remaining <= 0 || remaining > wait) {
+            if (timeout) {
+                clearTimeout(timeout);
+                timeout = null;
+            }
+            previous = now;
+            result = func.apply(context, args);
+            if (!timeout) context = args = null;
+        } else if (!timeout && options.trailing !== false) {
+            // 判断是否设置了定时器和 trailing
+            timeout = setTimeout(later, remaining);
+        }
+        return result;
+    };
+
+    throttled.cancel = function() {
+        clearTimeout(timeout);
+        previous = 0;
+        timeout = context = args = null;
+    };
+
+    return throttled;
+};

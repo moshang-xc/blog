@@ -237,6 +237,17 @@ console.log(person1 === person2); //true,注意复杂数据类型，比较的是
 
 ### ES6/ES7
 set, map, class, extend, promise
+- 新增了块级作用域(let,const)
+- 提供了定义类的语法糖(class)
+- 新增了一种基本数据类型(Symbol)
+- 新增了变量的解构赋值
+- 函数参数允许设置默认值，引入了rest参数，新增了箭头函数
+- 数组新增了一些API，如 isArray / from / of 方法;数组实例新增了 entries()，keys() 和 values() 等方法
+- 对象和数组新增了扩展运算符
+- ES6 新增了模块化(import/export)
+- ES6 新增了 Set 和 Map 数据结构
+- ES6 原生提供 Proxy 构造函数，用来生成 Proxy 实例
+- ES6 新增了生成器(Generator)和遍历器(Iterator)
 
 ###  ES6中的class和ES5的类有什么区别？
 - `ES6 class`内部所有定义的方法都是不可枚举的; 所有的方法都在实例的`__proto__`中
@@ -244,6 +255,18 @@ set, map, class, extend, promise
 - `ES6 class`不存在变量提升;
 - `ES6 class`默认即是严格模式;
 - `ES6 class`子类必须在父类的构造函数中调用super()，这样才有this对象;ES5中类继承的关系是相反的，先有子类的this，然后用父类的方法应用在this上。
+
+### promise
+promise有三种状态: `fulfilled`, `rejected`, `resolved`.
+**Promise 的优点：**
+- 一旦状态改变，就不会再变，任何时候都可以得到这个结果
+- 可以将异步操作以同步操作的流程表达出来，避免了层层嵌套的回调函数
+
+**Promise 的缺点：**
+- 无法取消 Promise
+- 当处于pending状态时，无法得知目前进展到哪一个阶段
+
+Promise 是微任务，setTimeout 是宏任务，同一个事件循环中，promise.then总是先于 setTimeout 执行。同一个事件循环中，promise.then 先于 setTimeout 执行。
 
 ### 在JS中什么是变量提升？什么是暂时性死区？
 
@@ -258,6 +281,11 @@ typeof y; // 值是undefined,不会报错
 ```
 暂时性死区的本质就是，只要一进入当前作用域，所要使用的变量就已经存在了，但是不可获取，只有等到声明变量的那一行代码出现，才可以获取和使用该变量。
 
+### setTimeout倒计时为什么会出现误差？
+setTimeout() 只是将事件插入了“任务队列”，必须等当前代码（执行栈）执行完，主线程才会去执行它指定的回调函数。要是当前代码消耗时间很长，也有可能要等很久，所以并没办法保证回调函数一定会在 setTimeout() 指定的时间执行。所以， setTimeout() 的第二个参数表示的是最少时间，并非是确切时间。
+
+HTML5标准规定了 setTimeout() 的第二个参数的最小值不得小于4毫秒，如果低于这个值，则默认是4毫秒。在此之前。老版本的浏览器都将最短时间设为10毫秒。另外，对于那些DOM的变动（尤其是涉及页面重新渲染的部分），通常是间隔16毫秒执行。这时使用 requestAnimationFrame() 的效果要好于 setTimeout();
+
 ### babel编译原理
 - babylon 将 ES6/ES7 代码解析成 AST
 - babel-traverse 对 AST 进行遍历转译，得到新的 AST
@@ -265,9 +293,27 @@ typeof y; // 值是undefined,不会报错
 
 ### 函数柯里化
 在一个函数中，首先填充几个参数，然后再返回一个新的函数的技术，称为函数的柯里化。通常可用于在不侵入函数的前提下，为函数 预置通用参数，供多次重复调用。
+```js
+function curry(fn, args = []) {
+    return function(){
+        let rest = [...args, ...arguments];
+        if (rest.length < fn.length) {
+            return curry.call(this,fn,rest);
+        }else{
+            return fn.apply(this,rest);
+        }
+    }
+}
+//test
+function sum(a,b,c) {
+    return a+b+c;
+}
+let sumFn = curry(sum);
+console.log(sumFn(1)(2)(3)); //6
+console.log(sumFn(1)(2, 3)); //6
+```
 
 ### 数组
-
 * map: 遍历数组，返回回调返回值组成的新数组
 * forEach: 无法break，可以用try/catch中throw new Error来停止
 * filter: 过滤
@@ -303,6 +349,17 @@ Array.from(arrayLike);
 修改原数组的API有:`splice/reverse/fill/copyWithin/sort/push/pop/unshift/shift`
 
 不修改原数组的API有:`slice/map/forEach/every/filter/reduce/entry/entries/find`
+
+### 数组取最大值
+```js
+// ES5 的写法
+Math.max.apply(null, [14, 3, 77, 30]);
+
+// ES6 的写法
+Math.max(...[14, 3, 77, 30]);
+
+// reduce写法
+```
 
 ### for of , for in 和 forEach,map 的区别。
 

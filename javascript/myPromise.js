@@ -15,9 +15,9 @@ const STATUS = {
 function promiseResolve(value, resolve, reject) {
     try {
         if (typeof value === 'object' && value.then && typeof value.then === 'function') {
-            value.then(function (res) {
+            value.then(function(res) {
                 resolve(res);
-            }, function (err) {
+            }, function(err) {
                 reject(err);
             });
         } else {
@@ -77,14 +77,14 @@ function Promise(executor) {
 }
 
 // 返回一个新的promise
-Promise.prototype.then = function (resolveFn, rejectFN) {
+Promise.prototype.then = function(resolveFn, rejectFN) {
     let _this = this,
         newPromise;
 
-    resolveFn = typeof resolveFn === 'function' ? resolveFn : function (res) {
+    resolveFn = typeof resolveFn === 'function' ? resolveFn : function(res) {
         return res
     };
-    rejectFN = typeof rejectFN === 'function' ? rejectFN : function (err) {
+    rejectFN = typeof rejectFN === 'function' ? rejectFN : function(err) {
         throw err;
     }
 
@@ -111,7 +111,7 @@ Promise.prototype.then = function (resolveFn, rejectFN) {
             break;
         default:
             newPromise = new Promise((resolve, reject) => {
-                _this.resolvedCallbacks.push(function (data) {
+                _this.resolvedCallbacks.push(function(data) {
                     try {
                         let val = resolveFn(data);
                         promiseResolve(val, resolve, reject);
@@ -119,7 +119,7 @@ Promise.prototype.then = function (resolveFn, rejectFN) {
                         return reject(e);
                     }
                 });
-                _this.rejectedCallbacks.push(function (data) {
+                _this.rejectedCallbacks.push(function(data) {
                     try {
                         let val = rejectFN(data);
                         promiseResolve(val, resolve, reject);
@@ -134,22 +134,67 @@ Promise.prototype.then = function (resolveFn, rejectFN) {
     return newPromise;
 }
 
-Promise.prototype.catch = function (rejectFN) {
+Promise.prototype.catch = function(rejectFN) {
     return this.then(null, rejectFN);
 }
 
-Promise.resolve = function (val) {
+Promise.resolve = function(val) {
     let promise = new Promise((resolve, reject) => {
         promiseResolve(val);
     });
     return promise;
 }
 
-Promise.reject = function (val) {
+Promise.reject = function(val) {
     let promise = new Promise((resolve, reject) => {
         reject(val);
     });
     return promise;
+}
+
+// 如果传入的参数是一个空的可迭代对象，那么此promise对象回调完成(resolve),只有此情况，是同步执行的，其它都是异步返回的。
+// 如果传入的参数不包含任何 promise， 则返回一个异步完成。
+// 如果参数中有一个promise失败，那么Promise.all返回的promise对象失败。
+// 在任何情况下， Promise.all 返回的 promise 的完成状态的结果都是一个数组。
+Promise.all = function(promises) {
+    return new Promise((resolve, reject) => {
+        let index = 0;
+        let result = [];
+        if (promises.length === 0) {
+            resolve(result);
+        } else {
+            setTimeout(() => {
+                function processValue(i, data) {
+                    result[i] = data;
+                    if (++index === promises.length) {
+                        resolve(result);
+                    }
+                }
+                for (let i = 0; i < promises.length; i++) {
+                    //promises[i] 可能是普通值
+                    Promise.resolve(promises[i]).then((data) => {
+                        processValue(i, data);
+                    }, (err) => {
+                        reject(err);
+                        return;
+                    });
+                }
+            })
+        }
+    });
+}
+
+// 不管成功还是失败，都会走到finally中,并且finally之后，还可以继续then。并且会将值原封不动的传递给后面的then。
+Promise.prototype.finally = function(callback) {
+    return this.then((value) => {
+        return Promise.resolve(callback()).then(() => {
+            return value;
+        });
+    }, (err) => {
+        return Promise.resolve(callback()).then(() => {
+            throw err;
+        });
+    });
 }
 
 module.exports = Promise;
