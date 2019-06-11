@@ -67,6 +67,7 @@ Function.prototype.mybind = function(target) {
     }
 }
 
+// 先完成参数传递和绑定操作
 Function.prototype.bind2 = function(context) {
     var _this = this;
     var argsParent = Array.prototype.slice.call(arguments, 1);
@@ -76,12 +77,9 @@ Function.prototype.bind2 = function(context) {
     };
 }
 
-// bind完全实现，当bind被当做new的构造函数时，需要保留原型链和this指向
+// bind完全实现，当bind被当做new的构造函数时，需要保留原型链和原his指向
+// 一个绑定函数也能使用new操作符创建对象：这种行为就像把原函数当成构造器。提供的 this 值被忽略，同时调用时的参数被提供给模拟函数。
 Function.prototype.my_bind = function(oThis) {
-    if (typeof this !== 'function') {
-        throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
-    }
-
     var aArgs = Array.prototype.slice.call(arguments, 1),
         fToBind = this,
         fNOP = function() {},
@@ -92,14 +90,12 @@ Function.prototype.my_bind = function(oThis) {
                 aArgs.concat(Array.prototype.slice.call(arguments)));
         };
 
-    // 维护原型关系
+    // 维护原型关系，我们直接将 fBound.prototype = this.prototype，直接修改fBound.prototype的时候，也会直接修改绑定函数的 prototype。
     if (this.prototype) {
         fNOP.prototype = this.prototype;
     }
-    // 下行的代码使fBound.prototype是fNOP的实例,因此
-    // 返回的fBound若作为new的构造函数,new生成的新对象作为this传入fBound,新对象的__proto__就是fNOP的实例
-    fBound.prototype = new fNOP();
 
+    fBound.prototype = new fNOP();
     return fBound;
 };
 
@@ -261,3 +257,10 @@ function throttle(func, wait, options) {
 
     return throttled;
 };
+
+// Object.create 
+Object.create = function(o) {
+    function f() {}
+    f.prototype = 0;
+    return new f();
+}
