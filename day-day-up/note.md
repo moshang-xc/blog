@@ -64,7 +64,7 @@ h.__proto__ === Object.prototype // false
 #### new 运算符的执行过程？
 
 1. 创建一个空的简单JavaScript对象（即**`{}`**）
-2. `链接该对象（即设置该对象的构造函数）到另一个对象 
+2. 链接该对象（即设置该对象的构造函数）到另一个对象 
 3. 将步骤1新创建的对象作为**`this`**的上下文 .
 4. 如果该函数没有返回对象，则返回**`this`**
 
@@ -103,6 +103,12 @@ Number(undefined)
 // NaN
 ```
 
+按存储来分析给一个全局变量赋值为null，相当于将这个变量的指针对象以及值清空，如果是给对象的属性 赋值为null，或者局部变量赋值为null,相当于给这个属性分配了一块空的内存，然后值为null， JS会回收全局变量为null的对象。
+
+给一个全局变量赋值为undefined，相当于将这个对象的值清空，但是这个对象依旧存在,如果是给对象的属性赋值 为undefined，说明这个值为空值
+
+**扩展下**：
+
 但是，上面这样的区分，在实践中很快就被证明不可行。目前，null和undefined基本是同义的，只有一些细微的差别。
 
 **null表示"没有对象"，即该处不应该有值。**典型用法是：
@@ -139,6 +145,37 @@ o.p // undefined
 var x = f();
 x // undefined
 ```
+
+声明了一个变量，但未对其初始化时，这个变量的值就是undefined，它是 JavaScript 基本类型 之一。
+
+```
+var data;
+console.log(data === undefined); //true
+```
+
+对于尚未声明过的变量，只能执行一项操作，即使用typeof操作符检测其数据类型，使用其他的操作都会报错。
+
+```
+//data变量未定义
+console.log(typeof data); // "undefined"
+console.log(data === undefined); //报错
+```
+
+值 `null` 特指对象的值未设置，它是 JavaScript 基本类型 之一。
+
+值 `null` 是一个字面量，它不像[`undefined`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined) 是全局对象的一个属性。`null` 是表示缺少的标识，指示变量未指向任何对象。
+
+```
+// foo不存在，它从来没有被定义过或者是初始化过：
+foo;
+"ReferenceError: foo is not defined"
+
+// foo现在已经是知存在的，但是它没有类型或者是值：
+var foo = null; 
+console.log(foo);	// null
+```
+
+
 
 ## 作用域
 
@@ -237,150 +274,6 @@ checkscope()();
 JavaScript 函数的执行用到了作用域链，这个作用域链是在函数定义的时候创建的。嵌套的函数 f() 定义在这个作用域链里，其中的变量 scope 一定是局部变量，不管何时何地执行函数 f()，这种绑定在执行 f() 时依然有效。
 
 
-
-## 变量提升
-
-**变量声明提升**： 通过 `var` 声明的变量在代码执行之前被js引擎提升到了当前作用域的顶部。
-
-**函数声明提升**： 通过函数声明的方式（非函数表达式）声明的函数在代码执行之前被js引擎提升到了当前作用域的顶部，而且函数声明提升优先于变量声明提升。
-
-```js
-console.log(s); // undefined
-console.log(f()); // This is a function body
-
-var s = 1;
-function f(){ console.log('This is a function body')};
-```
-
-函数的调用发生在函数声明之前，但是依旧正常执行。其实真正的函数声明只包含如下部分：
-
-```js
-function () {
-    console.log('This is a function body');
-}
-```
-
-这部分执行的结果就是创建了一个函数对象，我们假设为 `funcObj`。
-
-`f` 只是指向 `funcObj` 的指针，函数声明提升，提升的应该是创建 `funcObj` 的过程，也就是上述的代码块。
-
-##### 函数声明提升优于变量声明提升
-
-```js
-a();
-
-var a;
-function a() {
-    console.log(1);
-}
-a = function() {
-    console.log(2);
-}
-
-a();
-```
-
-运行结果：
-
-> 1
->
-> 2
-
-上述代码会被js引擎解析为如下：
-
-```js
-function a() {
-    console.log(1);
-}
-a();
-a = function() {
-    console.log(2);
-}
-a();
-```
-
-
-
-## 执行上下文栈
-
-当JavaScript代码执行一段可执行代码(executable code)时，会创建对应的执行上下文(execution context)。
-
-对于每个执行上下文，都有三个重要属性：
-
-- 变量对象(Variable object，VO)
-- 作用域链(Scope chain)
-- this
-
-
-
-## 变量对象
-
-变量对象是与执行上下文相关的数据作用域，存储了在上下文中定义的变量和函数声明。
-
-未进入执行阶段之前，变量对象(VO)中的属性都不能访问！但是进入执行阶段之后，变量对象(VO)转变为了活动对象(AO)，里面的属性都能被访问了，然后开始进行执行阶段的操作。
-
-### 函数上下文
-
-在函数上下文中，我们用活动对象(activation object, AO)来表示变量对象。
-
-活动对象和变量对象其实是一个东西，只是变量对象是规范上的或者说是引擎实现上的，不可在 JavaScript 环境中访问，只有到当进入一个执行上下文中，这个执行上下文的变量对象才会被激活，所以才叫 activation object 呐，而只有被激活的变量对象，也就是活动对象上的各种属性才能被访问。
-
-活动对象是在进入函数上下文时刻被创建的，它通过函数的 arguments 属性初始化。arguments 属性值是 Arguments 对象。
-
-### 执行过程
-
-执行上下文的代码会分成两个阶段进行处理：分析和执行，我们也可以叫做：
-
-1. 进入执行上下文
-2. 代码执行
-
-### 进入执行上下文
-
-当进入执行上下文时，这时候还没有执行代码，
-
-变量对象会包括：
-
-1. 函数的所有形参 (如果是函数上下文)
-   - 由名称和对应值组成的一个变量对象的属性被创建
-   - 没有实参，属性值设为 undefined
-2. 函数声明
-   - 由名称和对应值（函数对象(function-object)）组成一个变量对象的属性被创建
-   - 如果变量对象已经存在相同名称的属性，则完全替换这个属性
-3. 变量声明
-   - 由名称和对应值（undefined）组成一个变量对象的属性被创建；
-   - 如果变量名称跟已经声明的形式参数或函数相同，则**变量声明不会干扰已经存在的这类属性**
-
-### 代码执行
-
-在代码执行阶段，会顺序执行代码，根据代码，修改变量对象的值
-
-举个例子：
-
-```js
-console.log(foo);
-
-function foo(){
-    console.log("foo");
-}
-
-var foo = 1;
-```
-
-进入执行上下文后，此时的AO是：
-
-```js
-	AO = {
-    	arguments:{
-        	length: 0
-      },
-    	foo: reference to function foo(){...},
-  }
-	
-```
-
-进入执行上下文时，首先会处理函数声明，其次会处理变量声明，如果如果变量名称跟已经声明的形式参数或函数相同，则变量声明不会干扰已经存在的这类属性。
-
-进入代码执行阶段，执行第一行`console.log(foo)`的时候AO的值与上面一致，故打印函数而不是`undefined`，然后再对`foo`重新赋值为1.
 
 ## 作用域链
 
@@ -744,3 +637,21 @@ function isArrayLike(obj) {
         typeof length === "number" && length > 0 && (length - 1) in obj;
 }
 ```
+
+
+
+#### 思考题
+
+```
+var a = {n: 1};
+var b = a;
+a.x = a = {n: 2};
+
+a.x 	// --> undefined
+b.x 	// --> {n: 2}
+```
+
+答案已经写上面了，这道题的关键在于
+
+- 1、优先级。`.`的优先级高于`=`，所以先执行`a.x`，堆内存中的`{n: 1}`就会变成`{n: 1, x: undefined}`，改变之后相应的`b.x`也变化了，因为指向的是同一个对象。
+- 2、赋值操作是`从右到左`，所以先执行`a = {n: 2}`，`a`的引用就被改变了，然后这个返回值又赋值给了`a.x`，**需要注意**的是这时候`a.x`是第一步中的`{n: 1, x: undefined}`那个对象，其实就是`b.x`，相当于`b.x = {n: 2}`
