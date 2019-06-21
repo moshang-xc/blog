@@ -638,8 +638,6 @@ function isArrayLike(obj) {
 }
 ```
 
-
-
 #### 思考题
 
 ```
