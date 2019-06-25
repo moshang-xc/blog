@@ -61,6 +61,7 @@
     // the browser, add `_` as a global object.
     // (`nodeType` is checked to ensure that `module`
     // and `exports` are not HTML elements.)
+    // 兼容各平台使用
     if (typeof exports != 'undefined' && !exports.nodeType) {
         if (typeof module != 'undefined' && !module.nodeType && module.exports) {
             exports = module.exports = _;
@@ -104,6 +105,7 @@
     // element in a collection, returning the desired result — either `identity`,
     // an arbitrary callback, a property matcher, or a property accessor.
     // 一个内部函数， 用于生成可应用于集合中每个元素的回调， 返回所需的结果 - “identity”， 任意回调， 属性匹配器或属性访问器。
+    // 为什么这样设计
     var cb = function(value, context, argCount) {
         if (_.iteratee !== builtinIteratee) return _.iteratee(value, context);
         if (value == null) return _.identity;
@@ -151,6 +153,7 @@
     };
 
     // An internal function for creating a new object that inherits from another.
+    // Object.create实现与扩展
     var baseCreate = function(prototype) {
         if (!_.isObject(prototype)) return {};
         if (nativeCreate) return nativeCreate(prototype);
