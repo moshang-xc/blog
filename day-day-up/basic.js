@@ -178,6 +178,7 @@ function deepClone(obj) {
 /**
  * 防抖和节流
  * 防抖的情况下只会调用一次， 而节流的情况会每隔一定时间调用一次函数
+ * immediate: 保证立即调用，且delay时间内只能调用这一次
  */
 function debounce(func, wait, immediate = true) {
     let timeout, context, args;
