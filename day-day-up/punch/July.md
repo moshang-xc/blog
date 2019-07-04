@@ -344,3 +344,32 @@ background-position: 10px 20px;
 parseFloat((0.1 + 0.2).toFixed(10))
 ```
 
+## NaN
+
+`NaN` 是一个全局对象的属性。
+
+NaN 属性的初始值就是 NaN，和 `Number.NaN` 的值一样。在现代浏览器中（ES5中）， `NaN` 属性是一个不可配置（non-configurable），不可写（non-writable）的属性。
+
+### 判断一个值是否是NaN
+
+等号运算符（`==` 和 `===）` 不能被用来判断一个值是否是 `NaN`。必须使用 [`Number.isNaN()`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN)或 [`isNaN()`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/isNaN) 函数。在执行自比较之中：NaN，**也只有NaN，比较之中不等于它自己**。
+
+```js
+NaN == NaN;         // false
+NaN === NaN;        // false
+Number.NaN === NaN; // false
+isNaN(NaN);         // true
+isNaN(Number.NaN);  // true
+
+function valueIsNaN(v) { return v !== v; }
+valueIsNaN(1);          // false
+valueIsNaN(NaN);        // true
+valueIsNaN(Number.NaN); // true
+```
+
+### isNaN()
+
+### Number.isNaN()
+
+
+
