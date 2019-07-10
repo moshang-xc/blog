@@ -422,116 +422,348 @@ p1.__proto__ === p2.__proto__; //true
 | T        | x y               | 续前对称控制点二次贝塞尔曲线，<br />同理小写相对坐标为(t dx dy) |
 |          |                   |                                                              |
 
-## 4. setTimeout、Promise、Async/Await 的区别
+## 4.Promise, async/await, setTimeout
 
-首先看个题目，下面的代码输出什么？
+### Promise
+
+**语法**
 
 ```js
-console.log('script start')
+new Promise( function(resolve, reject) {...} /* executor */  );
+```
 
+**executor**是带有 `resolve` 和 `reject` 两个参数的函数 。**Promise构造函数执行时立即调用`executor` 函**数， `resolve` 和 `reject` 两个函数作为参数传递给`executor`（executor 函数在Promise构造函数返回所建promise实例对象前被调用）。
+
+`resolve` 和 `reject` 函数被调用时，分别将promise的状态改为*fulfilled（*完成）或rejected（失败）。executor 内部通常会执行一些异步操作，一旦异步操作执行完毕(可能成功/失败)，要么调用resolve函数来将promise状态改成*fulfilled*，要么调用`reject` 函数将promise的状态改为rejected。如果在executor函数中抛出一个错误，那么该promise 状态为rejected。executor函数的返回值被忽略。
+
+```js
+Promise.resolve((()=>{
+	console.log('a')
+})()).then(()=>{
+	console.log(1);
+}).then(()=>{
+	console.log(2);
+}).then(()=>{
+	console.log(3);
+});
+
+Promise.resolve((()=>{
+	console.log('b')
+})()).then(()=>{
+	console.log(4);
+}).then(()=>{
+	console.log(5);
+}).then(()=>{
+	console.log(6);
+});
+
+// 输出
+a
+b
+1
+4
+2
+5
+3
+6
+```
+
+```js
+new Promise(function(resolve){
+  resolve();
+})
+```
+
+等价于
+
+```js
+Promise.resolve();
+```
+
+
+
+### async
+
+**语法**
+
+```js
+async function name([param[, param[, ... param]]]) { statements }
+```
+
+**返回值**：`Promise`对象
+
+当调用一个 `async` 函数时，会返回一个 `Promise`对象。当这个 `async` 函数返回一个值时，`Promise` 的 resolve 方法会负责传递这个值；当 `async` 函数抛出异常时，`Promise` 的 reject 方法也会传递这个异常值。
+
+在没有 `await` 的情况下执行 async 函数，它会立即执行，返回一个 Promise 对象，并且，绝不会阻塞后面的语句。
+
+`async` 函数中可能会有 [`await`](#await) 表达式，这会使 `async` 函数暂停执行，等待 `Promise`  的结果出来，然后恢复`async`函数的执行并返回解析值（resolved）。
+
+> `await` 关键字仅仅在 `async` function中有效。如果在 `async function`函数体外使用 `await` ，你只会得到一个语法错误（`SyntaxError`）。
+
+### await
+
+`await`  操作符用于等待一个[`Promise`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise) 对象。它只能在异步函数 [`async function`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/async_function) 中使用。
+
+**语法**
+
+```js
+[return_value] = await expression;
+```
+
+**返回值**：返回 Promise 对象的处理结果。如果等待的不是 Promise 对象，则返回该值本身。
+
+#### 描述
+
+`await`经历两个步骤：
+
+1. 先等待右侧表达式的结果
+2. 根据结果进行下一步处理
+
+等到结果之后，对于await来说，分2个情况
+
+- 不是promise对象
+
+如果不是 promise , await会阻塞后面的代码，先执行async外面的同步代码，同步代码执行完，再回到async内部，把这个非promise的东西，作为 await表达式的结果。
+
+- 是promise对象
+
+如果它等到的是一个 promise 对象，await 也会暂停async后面的代码，先执行async外面的同步代码，等着 Promise 对象 fulfilled，然后把 resolve 的参数作为 await 表达式的运算结果，如果Promise对象rejected，则将错误抛出。
+
+**例子**：
+
+```js
+// await Promise	
+function resolveAfter2Seconds(x) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(x);
+    }, 2000);
+  });
+}
+
+async function f1() {
+  var x = await resolveAfter2Seconds(10);
+  console.log(x); // 10
+}
+f1();
+
+// await 非Promise
+async function f2() {
+  var y = await 20;
+  console.log(y); // 20
+}
+f2();
+
+// await Promise.reject
+async function f3() {
+  try {
+    var z = await Promise.reject(30);
+  } catch (e) {
+    console.log(e); // 30
+  }
+}
+f3();
+
+```
+
+在`await`的描述中会提及，当遇到`await`时会让出线程，阻塞`async function`后面的代码执行，但并不是说`await`等待的表达式的执行也会被阻塞，见示例：
+
+```js
 async function async1() {
+    console.log( 'async1 start' )
+    await async2()
+    console.log( 'async1 end' )
+}
+async function async2() {
+    console.log( 'async2' )
+}
+async1()
+console.log( 'script start' )
+
+// 输出
+async1 start
+async2
+script start
+async1 end
+```
+
+> await 必须用在 async 函数中的原因：async 函数调用不会造成阻塞，它内部所有的阻塞都被封装在一个 Promise 对象中异步执行。
+
+根据规范，`async`中的`await`直接采用 `Promise.resolve()` 来包装，故
+
+```js
+async function async1(){
   await async2()
-  console.log('async1 end')
+  console.log('async1 end'),
+}	
+```
+
+等价于
+
+```js
+async function async1() {
+  Promise.resolve(async2()).then(() => {
+    console.log('async1 end')
+  })
+}
+```
+
+### 正题
+
+如下代码的输出结果：
+
+```js
+ async function async1() {
+    console.log('async1 start');
+    await async2();
+    console.log('async1 end');
 }
 
 async function async2() {
-  console.log('async2 start');
-  return Promise.resolve().then(()=>console.log('async2 end'));
+    console.log('async2');
 }
-async1()
+
+console.log('script start');
 
 setTimeout(function() {
-  console.log('setTimeout')
+    console.log('setTimeout');
 }, 0)
 
-new Promise(resolve => {
-  console.log('Promise')
-  resolve()
-})
-  .then(function() {
-    console.log('promise1')
-  })
-  .then(function() {
-    console.log('promise2')
-  })
+async1();
 
-console.log('script end')
+new Promise(function(resolve) {
+    console.log('promise1');
+    resolve();
+}).then(function() {
+    console.log('promise2');
+});
+
+console.log('script end');
+
 ```
 
-输出：
+输出结果：
 
-```js
+```
 script start
-async2 end
-Promise
+async1 start
+async2
+promise1
 script end
 async1 end
-promise1
 promise2
 setTimeout
 ```
 
-解释：
+**解答**：
 
-1. 正常输出`script start`
-2. 执行`async1`函数，此函数中又调用了`async2`函数，输出`async2 end`。回到`async1`函数，**遇到了await，让出线程**，将`await async2`后的代码扔到**微任务队列**中。
-3. 遇到`setTimeout`，扔到**下一轮宏任务队列**
-4. 遇到`Promise`对象，立即执行其函数，输出`Promise`。其后的`resolve`，被扔到了**微任务队列**
-5. 正常输出`script end`
-6. 执行第2步被扔到微任务队列的任务，输出`async1 end`
-7. 执行第4步被扔到微任务队列的任务，输出`promise1`和`promise2`
-8. 第一轮EventLoop完成，执行第二轮EventLoop。执行`setTimeout`中的回调函数，输出`setTimeout`。
+1. 定义`async1`和`async2`
+2. 执行`console.log('script start')`打印输出`script start`
+3. 将`setTimeout`加入**宏任务队列**（先执行微任务，直到队列被清空再执行宏任务）
+4. 在`await`中说到规范会用`Promise.resolve()` 来包装`await`，故`async1`等价于
 
 ```js
-console.log('script start')
+ async function async1(){
+    console.log('async1 start')
+     return Promise.resolve(async2()).then(()=>{
+    	console.log('async1 end');
+     });
+ }
+```
 
+5. 执行`async1()`，如前面所述`async function`就是对Promise的一个封装，像Promise一样函数体内的内容是立即执行的，故执行第一行`console.log('async1 start')`输出`async1 start`，然后将`Promise`任务插入**微任务队列**，`async1`停止执行，让出线程，执行同步代码
+6. 继续执行后续的代码，执行`Promise`中的同步代码，打印`promise1`，将`Promise`插入**微任务队列**
+7. 执行最后一段同步代码，打印`script end`
+8. 同步代码执行完成，开始执行微任务
+9. 执行`步骤5`中插入的微任务，打印`async1 end`
+10. 执行`步骤6`中插入的微任务，答应`promise2`
+11. 微任务队列执行完成并清空，开始执行宏任务队列
+12. 执行`步骤3`中的宏任务，打印`setTimeout`
+13. 完成
+
+变形：
+
+```js
 async function async1() {
-  await async2()
-  console.log('async1 end')
+    console.log('async1 start');
+    await async2();
+    console.log('async1 end');
 }
 
 async function async2() {
-  console.log('async2 start');
-  return Promise.resolve().then(()=>console.log('async2 end'));
+    console.log('async2 start');
+    return Promise.resolve(1).then(() => {
+        console.log('async2 end');
+    });
 }
-async1()
+
+console.log('script start');
 
 setTimeout(function() {
-  console.log('setTimeout')
-}, 0)
+    console.log('setTimeout');
+}, 0);
 
-new Promise(resolve => {
-  console.log('Promise')
-  resolve()
-})
-  .then(function() {
-    console.log('promise1')
-  })
-  .then(function() {
-    console.log('promise2')
-  })
+async1();
 
-console.log('script end')
+new Promise(function(resolve) {
+    console.log('promise1');
+    resolve();
+}).then(function() {
+    console.log('promise2');
+});
+
+console.log('script end');
 ```
 
 输出：
 
-```js
+```
 script start
+async1 start
 async2 start
-Promise
+promise1
 script end
 async2 end
-promise1
 promise2
 async1 end
 setTimeout
 ```
 
+**解答**：如第一个一样
+
+**新版与旧版V8引擎解析的差别见**
+
+```js
+async function async1(){
+    console.log('async1 start');
+    await async2();
+    console.log('async1 end');
+ }
+
+// old
+async function async1() {
+  return new Promise(resolve => {
+    resolve(async2())
+  }).then(() => {
+    console.log('async1 end')
+  })
+}
+
+// new 
+ async function async1(){
+    console.log('async1 start')
+     return Promise.resolve(async2()).then(()=>{
+    	console.log('async1 end');
+     });
+ }
+```
 
 
-### async, await, promise解析
 
-`async` 函数返回一个 Promise 对象，当函数执行的时候，一旦遇到 await 就会先返回，等到触发的异步操作完成，再接着执行函数体内后面的语句。假如await后面的表达式不是一个promise，那么会直接执行不需要让出线程，如果返回的是promise则需要等promise解析完成后再继续执行。
+<https://segmentfault.com/q/1010000016147496/>
 
-`await`返回 Promise 对象的**处理结果**。如果等待的不是 Promise 对象，则返回该值本身。
+<https://github.com/xianshenglu/blog/issues/60>
+
+## 5. Event Loop
+
+<https://github.com/baiyuze/notes/issues/8>
