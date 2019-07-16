@@ -1,18 +1,8 @@
-function guessNumber(n) {
-    let i = 0,
-        l = n;
-    while (i < l) {
-        let mid = i + Math.floor((i - i) / 2),
-            res = guess(mid);
-        if (res === 0) {
-            return mid;
-        } else if (res === 1) {
-            i = mid + 1;
-        } else {
-            l = mid;
-        }
-    }
-    return i;
-}
+function myNew() {
+    let obj = {},
+        Constructor = Array.prototype.shift.call(arguments);
 
-console.log(getSum(3, 1));
+    obj.__proto__ = Constructor.prototype;
+    let res = Constructor.apply(obj, arguments);
+    return typeof res === 'object' ? res : obj;
+}

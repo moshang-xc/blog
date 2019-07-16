@@ -767,3 +767,415 @@ async function async1() {
 ## 5. Event Loop
 
 <https://github.com/baiyuze/notes/issues/8>
+
+
+
+## 6. 将数组扁平化并去除其中重复数据，最终得到一个升序且不重复的数组
+
+**方法一**
+
+```js
+function flat(arr) {
+    return Array.from(new Set(arr.flat(Infinity))).sort((a, b) => a - b);
+}
+```
+
+**方法二**
+
+```js
+Array.prototype.flat = function() {
+    return [].concat(...this.map(item => {
+        return Array.isArray(item) ? item.flat() : item;
+    }));
+}
+// 或
+Array.prototype.flat1 = function() {
+    return this.reduce((acc, item) => {
+        return acc.concat(Array.isArray(item) ? item.flat1() : item);
+    }, []);
+}
+
+Array.prototype.unique = function() {
+    return [...new Set(this)];
+}
+// 或
+// 基础类型数据
+Array.prototype.unique1 = function() {
+    let hashMap = {};
+    return this.filter(item => {
+      	// 区分类似1和'1' 
+        let key = typeof item + item;
+        return hashMap[key] === undefined ? (hashMap[key] = true) : false;
+    });
+}
+
+function flat(arr){
+  return arr.flat().unique().sort((a, b) => a - b);
+}
+```
+
+**方法三**
+
+```js
+// 全数字
+function flat(arr) {
+    return arr.toString().split(',').sort((a, b) => a - b).map(Number);
+}
+```
+
+
+
+## 7. 手动实现new
+
+### new操作如下：
+
+1. 创建一个空的简单JavaScript对象（即**`{}`**）
+
+2. 链接该对象（即设置该对象的构造函数）到另一个对象 
+
+3. 将步骤1新创建的对象作为**`this`**的上下文 
+
+4. 如果该函数没有返回对象，则返回**`this`**
+
+```js
+function myNew() {
+    let obj = {},
+        Constructor = Array.prototype.shift.call(arguments);
+
+    obj.__proto__ = Constructor.prototype;
+    let res = Constructor.apply(obj, arguments);
+    return typeof res === 'object' ? res : obj;
+}
+```
+
+
+
+## 8. JS 异步解决方案的发展历程以及优缺点
+
+#### 1. 回调函数（callback）
+
+```
+setTimeout(() => {
+    // callback 函数体
+}, 1000)
+```
+
+**缺点：回调地狱，不能用 try catch 捕获错误，不能 return**
+
+回调地狱的根本问题在于：
+
+- 缺乏顺序性： 回调地狱导致的调试困难，和大脑的思维方式不符
+- 嵌套函数存在耦合性，一旦有所改动，就会牵一发而动全身，即（**控制反转**）
+- 嵌套函数过多的多话，很难处理错误
+
+```
+ajax('XXX1', () => {
+    // callback 函数体
+    ajax('XXX2', () => {
+        // callback 函数体
+        ajax('XXX3', () => {
+            // callback 函数体
+        })
+    })
+})
+```
+
+**优点：解决了同步的问题**（只要有一个任务耗时很长，后面的任务都必须排队等着，会拖延整个程序的执行。）
+
+#### 2. Promise
+
+Promise就是为了解决callback的问题而产生的。
+
+Promise 实现了链式调用，也就是说每次 then 后返回的都是一个全新 Promise，如果我们在 then 中 return ，return 的结果会被 Promise.resolve() 包装
+
+**优点：解决了回调地狱的问题**
+
+```
+ajax('XXX1')
+  .then(res => {
+      // 操作逻辑
+      return ajax('XXX2')
+  }).then(res => {
+      // 操作逻辑
+      return ajax('XXX3')
+  }).then(res => {
+      // 操作逻辑
+  })
+```
+
+**缺点：无法取消 Promise ，错误需要通过回调函数来捕获**
+
+to do by xc 取消Promise
+
+#### 3. Generator
+
+**特点：可以控制函数的执行**，可以配合 co 函数库使用
+
+```
+function *fetch() {
+    yield ajax('XXX1', () => {})
+    yield ajax('XXX2', () => {})
+    yield ajax('XXX3', () => {})
+}
+let it = fetch()
+let result1 = it.next()
+let result2 = it.next()
+let result3 = it.next()
+```
+
+#### 4. Async/await
+
+async、await 是异步的终极解决方案
+
+**优点是：代码清晰，不用像 Promise 写一大堆 then 链，处理了回调地狱的问题**
+
+**缺点：await 将异步代码改造成同步代码，如果多个异步操作没有依赖性而使用 await 会导致性能上的降低。**
+
+```
+async function test() {
+  // 以下代码没有依赖性的话，完全可以使用 Promise.all 的方式
+  // 如果有依赖性的话，其实就是解决回调地狱的例子了
+  await fetch('XXX1')
+  await fetch('XXX2')
+  await fetch('XXX3')
+}
+```
+
+下面来看一个使用 `await` 的例子：
+
+```
+let a = 0
+let b = async () => {
+  a = a + await 10; // await返回10，让出线程，a = a + 10异步执行
+  console.log('2', a) // -> '2' 10
+}
+b()
+a++
+console.log('1', a) // -> '1' 1
+
+let a = 0
+let b = async () => {
+  a = (a = 2) + await 10; 
+  console.log('2', a) // -> '2' 12
+}
+b()
+a++
+console.log('1', a) // -> '1' 3
+```
+
+执行到`await`让出线程执行同步代码
+
+## 9. Promise 构造函数是同步执行还是异步执行，那么 then 方法呢
+
+Promise构造函数中的代码说同步执行，then方法是微任务，异步执行。
+
+Promise.resolve()中的代码是同步执行等
+
+原理见如下`Promise`手动实现：
+
+```js
+// promise状态常量
+const STATUS = {
+    PENDING: 0,
+    RESOLVED: 1,
+    REJECTED: 2
+}
+
+/**
+ * 根据参数的不同，返回不同的结果
+ * Promise实例：不作处理，直接返回
+ * 具有then属性的方法：会将其转为Promise对象，并执行then方法
+ * 参数不是具有then方法的对象， 或根本就不是对象: 返回一个新的 Promise 对象， 状态为resolved
+ * 不带有任何参数:直接返回一个resolved状态的 Promise 对象。
+ */
+function promiseResolve(value, resolve, reject) {
+    try {
+        if (typeof value === 'object' && value.then && typeof value.then === 'function') {
+            value.then(function(res) {
+                resolve(res);
+            }, function(err) {
+                reject(err);
+            });
+        } else {
+            resolve(value);
+        }
+    } catch (e) {
+        reject(e);
+    }
+}
+
+function Promise(executor) {
+    if (typeof executor !== 'function') {
+        throw new TypeError(`the resolver ${executor} must be a function.`);
+    }
+
+    if (!(this instanceof Promise)) {
+        return new Promise(executor);
+    }
+
+    let _this = this;
+
+    _this.status = STATUS.PENDING;
+    _this.resolvedCallbacks = [];
+    _this.rejectedCallbacks = [];
+    _this.result = '';
+
+    function resolve(res) {
+        if (_this.status === STATUS.PENDING) {
+            // 异步执行，保证所有同步的逻辑全部执行完成(then，catch等))
+            setTimeout(() => {
+                _this.status = STATUS.RESOLVED;
+                _this.result = res;
+                _this.resolvedCallbacks.forEach((item) => {
+                    item(res);
+                });
+            }, 0);
+        }
+    }
+
+    function reject(err) {
+        if (_this.status === STATUS.PENDING) {
+            setTimeout(() => {
+                _this.status = STATUS.REJECTED;
+                _this.result = err;
+                _this.rejectedCallbacks.forEach((item) => {
+                    item(err);
+                });
+            }, 0);
+        }
+    }
+
+    try {
+        executor(resolve, reject);
+    } catch (e) {
+        reject(e);
+    }
+}
+
+// 返回一个新的promise
+Promise.prototype.then = function(resolveFn, rejectFN) {
+    let _this = this,
+        newPromise;
+
+    resolveFn = typeof resolveFn === 'function' ? resolveFn : function(res) {
+        return res
+    };
+    rejectFN = typeof rejectFN === 'function' ? rejectFN : function(err) {
+        throw err;
+    }
+
+    switch (_this.status) {
+        case STATUS.RESOLVED:
+            newPromise = new Promise((resolve, reject) => {
+                try {
+                    let val = resolveFn(_this.result);
+                    promiseResolve(val, resolve, reject);
+                } catch (e) {
+                    return reject(e);
+                }
+            });
+            break;
+        case STATUS.REJECTED:
+            newPromise = new Promise((resolve, reject) => {
+                try {
+                    let val = rejectFN(_this.result);
+                    promiseResolve(val, resolve, reject);
+                } catch (e) {
+                    return reject(e);
+                }
+            });
+            break;
+        default:
+            newPromise = new Promise((resolve, reject) => {
+                _this.resolvedCallbacks.push(function(data) {
+                    try {
+                        let val = resolveFn(data);
+                        promiseResolve(val, resolve, reject);
+                    } catch (e) {
+                        return reject(e);
+                    }
+                });
+                _this.rejectedCallbacks.push(function(data) {
+                    try {
+                        let val = rejectFN(data);
+                        promiseResolve(val, resolve, reject);
+                    } catch (e) {
+                        return reject(e);
+                    }
+                });
+            });
+            break;
+    }
+
+    return newPromise;
+}
+
+Promise.prototype.catch = function(rejectFN) {
+    return this.then(null, rejectFN);
+}
+
+Promise.resolve = function(val) {
+    let promise = new Promise((resolve, reject) => {
+        promiseResolve(val);
+    });
+    return promise;
+}
+
+Promise.reject = function(val) {
+    let promise = new Promise((resolve, reject) => {
+        reject(val);
+    });
+    return promise;
+}
+
+// 如果传入的参数是一个空的可迭代对象，那么此promise对象回调完成(resolve),只有此情况，是同步执行的，其它都是异步返回的。
+// 如果传入的参数不包含任何 promise， 则返回一个异步完成。
+// 如果参数中有一个promise失败，那么Promise.all返回的promise对象失败。
+// 在任何情况下， Promise.all 返回的 promise 的完成状态的结果都是一个数组。
+Promise.all = function(promises) {
+    return new Promise((resolve, reject) => {
+        let index = 0;
+        let result = [];
+        if (promises.length === 0) {
+            resolve(result);
+        } else {
+            setTimeout(() => {
+                function processValue(i, data) {
+                    result[i] = data;
+                    if (++index === promises.length) {
+                        resolve(result);
+                    }
+                }
+                for (let i = 0; i < promises.length; i++) {
+                    //promises[i] 可能是普通值
+                    Promise.resolve(promises[i]).then((data) => {
+                        processValue(i, data);
+                    }, (err) => {
+                        reject(err);
+                        return;
+                    });
+                }
+            })
+        }
+    });
+}
+
+// 不管成功还是失败，都会走到finally中,并且finally之后，还可以继续then。并且会将值原封不动的传递给后面的then。
+Promise.prototype.finally = function(callback) {
+    return this.then((value) => {
+        return Promise.resolve(callback()).then(() => {
+            return value;
+        });
+    }, (err) => {
+        return Promise.resolve(callback()).then(() => {
+            throw err;
+        });
+    });
+}
+
+module.exports = Promise;
+```
+
+## 10. Async/Await 如何通过同步的方式实现异步
+
+未完待续

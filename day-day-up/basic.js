@@ -175,6 +175,76 @@ function deepClone(obj) {
     return t;
 }
 
+
+function getType(obj) {
+    return Object.prototype.toString.call(obj).slice(8, -1);
+}
+
+function getConstructor(obj) {
+    let type = getType(obj),
+        isSame = true;
+
+    if (type === 'Object' || type === 'Array') {
+        obj = obj.constructor();
+        isSame = false;
+    } else if (type === 'Date') {
+        obj = new Date(obj);
+    } else if (type === 'RegExp') {
+        obj = new RegExp(obj);
+    }
+
+    return {
+        isSame,
+        obj
+    };
+}
+
+function deepCloneBFS(obj) {
+    let cons = getConstructor(obj),
+        stack = [],
+        map = new Map(), // 用于处理循环引用
+        _obj = cons.obj;
+
+    if (cons.isSame) {
+        return _obj;
+    }
+
+    stack.push([obj, _obj]);
+    map.set(obj, _obj);
+
+    while (stack.length > 0) {
+        let [ori, tar] = stack.shift();
+        for (let key in ori) {
+            // 用于处理循环引用
+            if (map.get(ori[key])) {
+                tar[key] = map.get(ori[key]);
+                continue;
+            }
+
+            let data = getConstructor(ori[key]);
+            tar[key] = data.obj;
+            if (data.isSame) {
+                continue;
+            }
+            stack.push([ori[key], tar[key]]);
+            map.set(ori[key], tar[key]);
+        }
+    }
+}
+
+function deepCloneDFS(obj) {
+    let data = getConstructor(obj);
+    let _obj = data.obj;
+    if (data.isSame) {
+        return _obj;
+    }
+
+    for (let key in obj) {
+        _obj[key] = deepCloneDFS(obj[key]);
+    }
+    return _obj;
+}
+
 /**
  * 防抖和节流
  * 防抖的情况下只会调用一次， 而节流的情况会每隔一定时间调用一次函数
