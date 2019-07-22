@@ -30,15 +30,15 @@ var person = new Person();
 console.log(person.constructor === Person); // true
 ```
 
-当获取 person.constructor 时，其实 person 中并没有 constructor 属性,当不能读取到constructor 属性时，会从 person 的原型也就是 Person.prototype 中读取，正好原型中有该属性，所以：
+**当获取 person.constructor 时，其实 person 中并没有 constructor 属性,当不能读取到constructor 属性时，会从 person 的原型也就是 Person.prototype 中读取**，正好原型中有该属性，所以：
 
 ```js
 person.constructor === Person.prototype.constructor
 ```
 
-#### __proto__
+#### \_\_proto__
 
-其次是 __proto__ ，绝大部分浏览器都支持这个非标准的方法访问原型，然而它并不存在于 Person.prototype 中，实际上，它是来自于 Object.prototype ，与其说是一个属性，不如说是一个 getter/setter，当使用 obj.__proto__ 时，可以理解成返回了 Object.getPrototypeOf(obj)。
+其次是 \_\_proto__ ，绝大部分浏览器都支持这个非标准的方法访问原型，然而它并不存在于 Person.prototype 中，实际上，它是来自于 Object.prototype ，与其说是一个属性，不如说是一个 getter/setter，当使用 obj.\_\_proto__ 时，可以理解成返回了 Object.getPrototypeOf(obj)。
 
 #### 真的是继承吗？
 
@@ -60,6 +60,10 @@ k1.__proto__ === Object.prototype // false
 k1.__proto__ === Number.prototype // true
 h.__proto__ === Object.prototype // false
 ```
+
+**解释**:
+
+
 
 #### new 运算符的执行过程？
 
@@ -195,7 +199,7 @@ function unique(array) {
     return res;
 }
 
-// Object去重
+// Object去重  有问题无法区分1和'1'等
 function unique(array) {
     var obj = {};
     return array.filter(function(item, index, array){
