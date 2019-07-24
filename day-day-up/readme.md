@@ -34,114 +34,12 @@ content-box
 ## js
 
 ### 原型，构造函数，实例
-> __ptoto__: 原型对象链或者隐式原型
-
-- 实例.__proto__ === 原型
-- 原型.constructor === 构造函数
-- 构造函数.prototype === 原型
-- 实例.constructor = 构造函数
-
-
-
-原型链是由原型对象组成，每个对象都有`__proto__`属性，指向了创建该对象的构造函数的原型`__proto__`将对象连接起来组成了原型链。是一个用来实现继承和共享属性的有限的对象链。
-```js
-function S(t){
-    this.s = t;
-}
-
-var t = new S(1);
-
-t.__proto__ === S.prototype // ture
-S.prototype.constructor = S // true
-t.constructor = S // true
-```
-#### Object.create()
-
-`Object.create()`方法接受两个参数:`Object.create(obj,propertiesObject)`
-`obj`:一个对象，应该是新创建的对象的原型。
-`propertiesObject`：可选。该参数对象是一组属性与值，该对象的属性名称将是新创建的对象的属性名称，值是属性描述符（这些属性描述符的结构与Object.defineProperties()的第二个参数一样）。注意：该参数对象不能是 undefined，另外只有该对象中自身拥有的可枚举的属性才有效，也就是说该对象的原型链上属性是无效的。
-
-Object.create(null) 创建的对象是一个空对象，在该对象上没有继承 Object.prototype 原型链上的属性或者方法,例如：toString(), hasOwnProperty()等方法
-
-Vue源码中的extend就是通过`Object.create`来实现的。
 
 ### new运算符的执行过程
-- 新建一个新对象A，并且this引用该对象
-- A.__proto__ = func.prototype A继承了函数的原型，属性和方法被加入到 this 引用的对象中
-- let res = func.call(A) 将构造函数的作用域赋值给新对象，即this指向这个新对象.
-- return res/A 如果函数没有返回其他对象，那么new表达式中的函数调用会自动返回这个新对象。
-
-```js
-function new(func){
-    let target = {};
-    target.__proto__ = func.prototype;
-    let res = func.call(target);
-
-    if(typeof(res) == "object" || typeof(res) == "function"){
-        return res;
-    }
-    return target;
-}
-
-```
-通过对象字面量定义对象时，不会调用Object构造函数。
-
 ### 原型 && 原型链
-**原型**
-在 JavaScript 中，每当定义一个对象（函数也是对象）时候，对象中都会包含一些预定义的属性。其中每个函数对象都有一个prototype 属性，这个属性指向函数的原型对象。使用原型对象的好处是所有对象实例共享它所包含的属性和方法。原型上定义的属性和方法是共享的，构造函数内定义的是私有的。
-
-**原型链**
-每个对象拥有一个原型对象，通过 proto (读音: dunder proto) 指针指向其原型对象，并从中继承方法和属性，同时原型对象也可能拥有原型，这样一层一层，最终指向 null(Object.proptotype.__proto__ 指向的是null)。这种关系被称为原型链 (prototype chain)，通过原型链一个对象可以拥有定义在其他对象中的属性和方法。原型链解决的主要是继承问题。
-
-构造函数 Parent、Parent.prototype 和 实例 p 的关系如下:(`p.__proto__ === Parent.prototype`)
-![原型](../share/proto.png)
-
-**prototype 和 __proto__ 区别是什么**
-- `prototype`是构造函数的属性。
-- `__proto__`是每个实例都有的属性，可以访问 [[prototype]] 属性。
-
-实例的`__proto__`与其构造函数的`prototype`指向的是同一个对象。
-
 ### 继承
-```js
-function inherit(sub, sup){
-    sub.prototype = Object.create(sup.prototype);
-    sub.protytype.constructor = sub;
-}
-
-// 或
-function inherit = (function(){
-    let F= function(){};
-    
-    return function(sub, sup){
-        F.prototype = sup.prototype;
-        sub.prototype = new F();
-        sub.protytype.constructor = sub;
-    }
-})();
-```
-
 ### instanceof typeof
-- typeof 能够正确的判断基本数据类型，但是除了 null, typeof null输出的是对象
-- typeof 不能正确的判断其类型， typeof 一个函数可以输出 'function',而除此之外，输出的全是 object
-- instanceof 是通过原型链判断的，A instanceof B, 在A的原型链中层层查找，是否有原型等于B.prototype，如果一直找到A的原型链的顶端(null;即Object.prototype.__proto__),仍然不等于B.prototype，那么返回false，否则返回true.
-
 **insranceof实现**
-```js
-function instanceof(sub, sup){
-    let subPro = sub.__proto__,
-        supPro = sup.prototype;
-
-    while(true){
-        if(subPro === null){
-            return false;
-        }else if(subPro === supPro){
-            return true;
-        }
-        subPro = subPro.__proto__;
-    }
-}
-```
 
 ### 闭包
 闭包是指有权访问另一个函数作用域中的变量的函数，创建闭包最常用的方式就是在一个函数内部创建另一个函数。
@@ -550,60 +448,5 @@ chrome默认的sort算法是怎样的，为什么不能进行正确的排序
 ~5 = -6 <=> 0000 0101 -> 1111 1010
 ```
 
-### 位运算使用实例：
 
-- 检测整数n是否是2的次幂
-
-```js
-n&(n-1) === 0 
-```
-
-- a^b^b = a
-- 数 a 向右移一位，相当于将 a 除以 2；数 a 向左移一位，相当于将 a 乘以 2
-
-```js
-var a = 2;
-a >> 1; // 1
-a << 1; // 4
-```
-
-- 交换两个数
-
-```js
-a ^= b;
-b ^= a;
-a ^= b;
-```
-
-- 判断奇数、偶数
-
-```js
-a&1 === 0 // 偶数
-```
-
-- 交换符号
-
-```js
-function reversal(a) {
-  return ~a + 1; // 整数取反加1，正好变成其对应的负数(补码表示)；负数取反加一，则变为其原码，即正数
-}
-```
-
--  x & (x - 1) 用于消去x最后一位的1
-
-```js
-let x = 12; //1100
-x - 1 = 11; //1011
-X&(x-1) = 8; //1000
-
-// 统计给定数二进制中1的个数
-function count(n){
-    let len = 0;
-    while(n){
-        n = n&(n-1);
-        len++;
-    }
-    return len;
-}
-```
 
