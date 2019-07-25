@@ -358,152 +358,269 @@ Object.getOwnPropertyNames( myObject ); // ["a", "b"]
 
 [https://github.com/getify/You-Dont-Know-JS/blob/1ed-zh-CN/this%20&%20object%20prototypes/README.md#you-dont-know-js-this--object-prototypes](https://github.com/getify/You-Dont-Know-JS/blob/1ed-zh-CN/this & object prototypes/README.md#you-dont-know-js-this--object-prototypes)
 
+# 原型和行为委托
 
+## [[Prototype]]
 
-# 位运算
+JavaScript 中的对象有一个内部属性，在语言规范中称为 `[[Prototype]]`，它只是一个其他对象的引用。几乎所有的对象在被创建时，它的这个属性都被赋予了一个非 `null` 值，通常称为“原型”。
 
-## &（按位与）
+`[[Prototype]]` 引用有什么用？先看对象属性取值操作`[[Get]]`
 
-两个都为真才为真
+### [[Get]]	 	
 
-```js
-1&1=1 , 1&0=0 , 0&1=0 , 0&0=0
+如果默认的 `[[Get]]` 操作不能直接在对象上找到被请求的属性，那么它会沿着对象的 `[[Prototype]]` **链** 继续处理。
 
-3&5 = 1 <=> 011&101 = 001 
+看如下代码：
+
+```
+var anotherObject = {
+	a: 2
+};
+
+// 创建一个链接到 `anotherObject` 的对象
+var myObject = Object.create( anotherObject );
+
+myObject.a; // 2
 ```
 
-## &&（逻辑与）
+获取`myObject`属性`a`的值，对于默认的 `[[Get]]` 操作来说，第一步就是检查对象本身是否拥有一个 `a` 属性，如果有，就使用它。本示例中是没有的，进入第二步。第二步如果 `myObject` 上 **不** 存在 `a` 属性时，我们就将注意力转向对象的 `[[Prototype]]` 链。现在让 `myObject` `[[Prototype]]` 链到了 `anotherObject`，在 `anotherObject` 中找到了，而且确实找到了值 `2`。但是，如果在 `anotherObject` 上也没有找到 `a`，而且如果它的 `[[Prototype]]` 链不为空，就沿着它继续查找。
 
-左右两边的表达式为真则为真，且`&&`左边的表达式为真的情况下才计算右边的表达式
+这个处理持续进行，直到找到名称匹配的属性，或者 `[[Prototype]]` 链终结。如果在链条的末尾都没有找到匹配的属性，那么 `[[Get]]` 操作的返回结果为 `undefined`。
 
-逻辑与的值当表达式的结果为真时，值为后一项表达式的值，当表达式的值为假时，若第一个表达式为真，则值为第二个表达式的值，否则为第一个表达式的值，如下所示：
+对于在对象上添加新属性或改变既存属性的值，情况会更复杂一些，
 
-```js
-1&&3 // 3
-0&&3 // 0
-1&&false // false
+### [[Put]] 与属性屏蔽
+
+```
+myObject.foo = "bar";
 ```
 
-## |（按位或）
+如果 `myObject` 对象已经直接拥有了普通的名为 `foo` 的数据访问器属性，那么这个赋值就和改变既存属性的值一样简单。
 
-一个为真就为真
+如果 `foo` 还没有直接存在于 `myObject`，`[[Prototype]]` 就会被遍历，就像 `[[Get]]` 操作那样。如果在链条的任何地方都没有找到 `foo`，那么就会像我们期望的那样，属性 `foo` 就以指定的值被直接添加到 `myObject` 上。
 
-```js
-1|0 = 1 , 1|1 = 1 , 0|0 = 0 , 0|1 = 1
+然而，如果 `foo` 已经存在于链条更高层的某处，`myObject.foo = "bar"` 赋值就可能会发生微妙的（也许令人诧异的）行为。
 
-6||2 = 6 <=> 0110||0010 = 0110
+如果属性名 `foo` 同时存在于 `myObject` 本身和从 `myObject` 开始的 `[[Prototype]]` 链的更高层，这样的情况称为 *遮蔽*。直接存在于 `myObject` 上的 `foo` 属性会 *遮蔽* 任何出现在链条高层的 `foo` 属性，因为 `myObject.foo` 查询总是在寻找链条最底层的 `foo` 属性。
+
+正如我们被暗示的那样，在 `myObject` 上的 `foo` 遮蔽没有看起来那么简单。我们现在来考察 `myObject.foo = "bar"` 赋值的三种场景，当 `foo` **不直接存在** 于 `myObject`，但 **存在** 于 `myObject` 的 `[[Prototype]]` 链的更高层时：
+
+1. 如果一个普通的名为 `foo` 的数据访问属性在 `[[Prototype]]` 链的高层某处被找到，**而且没有被标记为只读（writable:false）**，那么一个名为 `foo` 的新属性就直接添加到 `myObject` 上，形成一个 **遮蔽属性**。
+2. 如果一个 `foo` 在 `[[Prototype]]` 链的高层某处被找到，但是它被标记为 **只读（writable:false）** ，那么设置既存属性和在 `myObject` 上创建遮蔽属性都是 **不允许** 的。如果代码运行在 `strict mode` 下，一个错误会被抛出。否则，这个设置属性值的操作会被无声地忽略。不论怎样，**没有发生遮蔽**。
+3. 如果一个 `foo` 在 `[[Prototype]]` 链的高层某处被找到，而且它是一个 setter（见第三章），那么这个 setter 总是被调用。没有 `foo` 会被添加到（也就是遮蔽在）`myObject` 上，这个 `foo` setter 也不会被重定义。
+
+大多数开发者认为，如果一个属性已经存在于 `[[Prototype]]` 链的高层，那么对它的赋值（`[[Put]]`）将总是造成遮蔽。但如你所见，这仅在刚才描述的三中场景中的一种（第一种）中是对的。
+
+如果你想在第二和第三种情况中遮蔽 `foo`，那你就不能使用 `=` 赋值，而必须使用 `Object.defineProperty(..)`（见第三章）将 `foo` 添加到 `myObject`。
+
+### （原型）继承
+
+js的继承都是依托原型之间的链接进行的，不会像传统类那样进行拷贝，只是将原型从一个地方链到另一个地方。
+
+这里是一段典型的创建这样的链接的“原型风格”代码：
+
+```
+function Foo(name) {
+	this.name = name;
+}
+
+Foo.prototype.myName = function() {
+	return this.name;
+};
+
+function Bar(name,label) {
+	Foo.call( this, name );
+	this.label = label;
+}
+
+// 这里，我们创建一个新的 `Bar.prototype` 链接链到 `Foo.prototype`
+Bar.prototype = Object.create( Foo.prototype );
+
+// 注意！现在 `Bar.prototype.constructor` 不存在了，
+// 如果你有依赖这个属性的习惯的话，它可以被手动“修复”。
+
+Bar.prototype.myLabel = function() {
+	return this.label;
+};
+
+var a = new Bar( "a", "obj a" );
+
+a.myName(); // "a"
+a.myLabel(); // "obj a"
 ```
 
-## ||（逻辑或）
+**注意：** 要想知道为什么上面代码中的 `this` 指向 `a`，参见第二章。
 
-两边的表达式有一个为真则为真，且`||`左边的表达式为真的情况下不去计算右边的表达式
+重要的部分是 `Bar.prototype = Object.create( Foo.prototype )`。`Object.create(..)` 凭空 *创建* 了一个“新”对象，并将这个新对象内部的 `[[Prototype]]` 链接到你指定的对象上（在这里是 `Foo.prototype`）。
 
-## ^（异或运算符）
+换句话说，这一行的意思是：“做一个 *新的* 链接到‘Foo 点儿 prototype’的‘Bar 点儿 prototype ’对象”。
 
-同为假，异为真
+## 对象链接
 
-```JS
-1^0 = 1 , 1^1 = 0 , 0^1 = 1 , 0^0 = 0
+正如我们看到的，`[[Prototype]]` 机制是一个内部链接，它存在于一个对象上，这个对象引用一些其他的对象。
 
-5^9 = 12 <=> 0101^1001 = 1100
+这种链接（主要）在对一个对象进行属性/方法引用，但这样的属性/方法不存在时实施。在这种情况下，`[[Prototype]]` 链接告诉引擎在那个被链接的对象上查找这个属性/方法。接下来，如果这个对象不能满足查询，它的 `[[Prototype]]` 又会被查找，如此继续。这个在对象间的一系列链接构成了所谓的“原形链”。
+
+### 创建链接
+
+我们已经彻底揭露了为什么 JavaScript 的 `[[Prototype]]` 机制和 *类* **不** 一样，而且我们也看到了如何在正确的对象间创建 **链接**。
+
+`[[Prototype]]` 机制的意义是什么？为什么总是见到 JS 开发者们费那么大力气（模拟类）在他们的代码中搞乱这些链接？
+
+记得我们在本章很靠前的地方说过 `Object.create(..)` 是英雄吗？现在，我们准备好看看为什么了。
+
+```
+var foo = {
+	something: function() {
+		console.log( "Tell me something good..." );
+	}
+};
+
+var bar = Object.create( foo );
+
+bar.something(); // Tell me something good...
 ```
 
-## >>（右移运算符） 
+`Object.create(..)` 创建了一个链接到我们指定的对象（`foo`）上的新对象（`bar`），这给了我们 `[[Prototype]]` 机制的所有力量（委托），而且没有 `new` 函数作为类和构造器调用产生的所有没必要的复杂性，搞乱 `.prototype` 和 `.constructor` 引用，或任何其他的多余的东西。
 
-`5>>2`的意思为5的二进制位往右挪两位，正数左边补0，负数补1
+#### 部分填补 `Object.create()`
 
-```js
-0101 >> 2 -> 0001 = 1 
+`Object.create(..)` 在 ES5 中被加入。你可能需要支持 ES5 之前的环境（比如老版本的 IE），所以让我们来看一个 `Object.create(..)` 的简单 **部分** 填补工具，它甚至能在更老的 JS 环境中给我们所需的能力：
 
--5>>2 
-// -5的二进制表示 1111 1011
-源码: 0000 0101
-取反: 1111 1010
-补码: 1111 1011 (补码=取反+1)
- 
--5>>2: 1111 1110
-取反:   0000 0001  
-源码:   0000 0010 (源码=取反+1)
--5>>2 = -2
-
--2 = 1111 1111
--2>>2: 1111 1111
-
--1 : 1111 1110
-取反: 0000 0001  
--5>>2 = -1
 ```
-
-## <<（左移运算符）
-
-`5<<2`的意思为5的二进制位往左挪两位，右边补0
-
-```js
-0101 << 2 -> 010100 = 20 
-```
-
-## ~（取反运算符）
-
-取反就是1为0,0为1
-
-```js
-~5 = -6 <=> 0000 0101 -> 1111 1010
-```
-
-## 位运算使用实例：
-
-- 检测整数n是否是2的次幂
-
-```js
-n&(n-1) === 0 
-```
-
-- a^b^b = a
-- 数 a 向右移一位，相当于将 a 除以 2；数 a 向左移一位，相当于将 a 乘以 2
-
-```js
-var a = 2;
-a >> 1; // 1
-a << 1; // 4
-```
-
-- 交换两个数
-
-```js
-a ^= b;
-b ^= a;
-a ^= b;
-```
-
-- 判断奇数、偶数
-
-```js
-a&1 === 0 // 偶数
-```
-
-- 交换符号
-
-```js
-function reversal(a) {
-  return ~a + 1; // 整数取反加1，正好变成其对应的负数(补码表示)；负数取反加一，则变为其原码，即正数
+if (!Object.create) {
+	Object.create = function(o) {
+		function F(){}
+		F.prototype = o;
+		return new F();
+	};
 }
 ```
 
-- x & (x - 1) 用于消去x最后一位的1
+## 委托设计模式
+
+但是现在让我们试着用 *行为委托* 代替 *类* 来思考同样的问题。
+
+你将首先定义一个称为 `Task` 的 **对象**（不是一个类，也不是一个大多数 JS 开发者想让你相信的 `function`），而且它将拥有具体的行为，这些行为包含各种任务可以使用的（读作：*委托至*！）工具方法。然后，对于每个任务（“XYZ”，“ABC”），你定义一个 **对象** 来持有这个特定任务的数据/行为。你 **链接** 你的特定任务对象到 `Task` 工具对象，允许它们在必要的时候可以委托到它。
+
+基本上，你认为执行任务“XYZ”就是从两个兄弟/对等的对象（`XYZ` 和 `Task`）中请求行为来完成它。与其通过类的拷贝将它们组合在一起，我们可以将它们保持在分离的对象中，而且可以在需要的情况下允许 `XYZ` 对象 **委托到** `Task`。
+
+这里是一些简单的代码，示意你如何实现它：
 
 ```js
-let x = 12; //1100
-x - 1 = 11; //1011
-X&(x-1) = 8; //1000
+var Task = {
+	setID: function(ID) { this.id = ID; },
+	outputID: function() { console.log( this.id ); }
+};
 
-// 统计给定数二进制中1的个数
-function count(n){
-    let len = 0;
-    while(n){
-        n = n&(n-1);
-        len++;
-    }
-    return len;
-}
+// 使 `XYZ` 委托到 `Task`
+var XYZ = Object.create( Task );
+
+XYZ.prepareTask = function(ID,Label) {
+	this.setID( ID );
+	this.label = Label;
+};
+
+XYZ.outputTaskDetails = function() {
+	this.outputID();
+	console.log( this.label );
+};
+
+// ABC = Object.create( Task );
+// ABC ... = ...
 ```
 
+在这段代码中，`Task` 和 `XYZ`不是类（也不是函数），它们 **仅仅是对象**。`XYZ` 通过 `Object.create()` 创建，来 `[[Prototype]]` 委托到 `Task` 对象
+
+#### class与委托比较
+
+```js
+class Widget {
+	constructor(width,height) {
+		this.width = width || 50;
+		this.height = height || 50;
+		this.$elem = null;
+	}
+	render($where){
+		if (this.$elem) {
+			this.$elem.css( {
+				width: this.width + "px",
+				height: this.height + "px"
+			} ).appendTo( $where );
+		}
+	}
+}
+
+class Button extends Widget {
+	constructor(width,height,label) {
+		super( width, height );
+		this.label = label || "Default";
+		this.$elem = $( "<button>" ).text( this.label );
+	}
+	render($where) {
+		super.render( $where );
+		this.$elem.click( this.onClick.bind( this ) );
+	}
+	onClick(evt) {
+		console.log( "Button '" + this.label + "' clicked!" );
+	}
+}
+
+$( document ).ready( function(){
+	var $body = $( document.body );
+	var btn1 = new Button( 125, 30, "Hello" );
+	var btn2 = new Button( 150, 40, "World" );
+
+	btn1.render( $body );
+	btn2.render( $body );
+} );
+```
+
+```js
+var Widget = {
+	init: function(width,height){
+		this.width = width || 50;
+		this.height = height || 50;
+		this.$elem = null;
+	},
+	insert: function($where){
+		if (this.$elem) {
+			this.$elem.css( {
+				width: this.width + "px",
+				height: this.height + "px"
+			} ).appendTo( $where );
+		}
+	}
+};
+
+var Button = Object.create( Widget );
+
+Button.setup = function(width,height,label){
+	// delegated call
+	this.init( width, height );
+	this.label = label || "Default";
+
+	this.$elem = $( "<button>" ).text( this.label );
+};
+Button.build = function($where) {
+	// delegated call
+	this.insert( $where );
+	this.$elem.click( this.onClick.bind( this ) );
+};
+Button.onClick = function(evt) {
+	console.log( "Button '" + this.label + "' clicked!" );
+};
+
+$( document ).ready( function(){
+	var $body = $( document.body );
+
+	var btn1 = Object.create( Button );
+	btn1.setup( 125, 30, "Hello" );
+
+	var btn2 = Object.create( Button );
+	btn2.setup( 150, 40, "World" );
+
+	btn1.build( $body );
+	btn2.build( $body );
+} );
+```
