@@ -641,6 +641,27 @@ JavaScript 定义了七种内建类型：
 
 **注意：** 除了 `object` 所有这些类型都被称为“基本类型（primitives）”。
 
+# typeof
+
+typeof 操作在用于安全的变量检查工作中是很有用的，如下例子：
+
+```js
+// 噢，这将抛出一个错误！
+if (DEBUG) {
+	console.log( "Debugging is starting" );
+}
+
+// 并不是所有的全局变量都是window
+if (window.DEBUG) {
+	console.log( "Debugging is starting" );
+}
+
+// 这是一个安全的存在性检查
+if (typeof DEBUG !== "undefined") {
+	console.log( "Debugging is starting" );
+}
+```
+
 # Number
 
 在 JavaScript 中字面数字一般用十进制小数表达。例如：
@@ -678,6 +699,14 @@ var b = 42.;
 
 保持使用小写的谓词 `0x`、`0b`、和`0o`。
 
+# MAX_SAFE_INTEGER
+
+**Number.MAX_SAFE_INTEGER** 常量表示在 JavaScript 中最大的安全整数（maxinum safe integer)（`2^53 - 1）。`
+
+MAX_SAFE_INTEGER 是一个值为 9007199254740991的常量。因为Javascript的数字存储使用了`[IEEE 754](http://en.wikipedia.org/wiki/IEEE_floating_point)中规定的[双精度浮点数](https://zh.wikipedia.org/zh-cn/雙精度浮點數)数据类型，而这一数据类型能够安全存储 `-(253 - 1)` 到 `253 - 1 之间的数值（包含边界值）。
+
+这里安全存储的意思是指能够准确区分两个不相同的值，例如 `Number.MAX_SAFE_INTEGER + 1 === Number.MAX_SAFE_INTEGER + 2 将得到 true的结果，而这在数学上是错误的`
+
 ## 值与引用
 
 在其他许多语言中，根据你使用的语法，值可以通过值拷贝，也可以通过引用拷贝来赋予/传递。在 JavaScript 中，没有指针，并且引用的工作方式有一点儿不同。你不能拥有一个从一个 JS 变量到另一个 JS 变量的引用。这是完全不可能的。
@@ -702,3 +731,70 @@ a.toUpperCase(); // "ABC"
 ```
 
 那么，如果你想以通常的方式访问这些字符串值上的属性/方法，比如一个 `for` 循环的 `i < a.length` 条件，这么做看起来很有道理：一开始就得到一个这个值的对象形式，于是 JS 引擎就不需要隐含地为你创建一个。
+
+## JSON 字符串化
+
+对于最简单的值，JSON 字符串化行为基本上和 `toString()` 转换是相同的，除了序列化的结果 *总是一个 string*：
+
+```
+JSON.stringify( 42 );	// "42"
+JSON.stringify( "42" );	// ""42"" （一个包含双引号的字符串）
+JSON.stringify( null );	// "null"
+JSON.stringify( true );	// "true"
+```
+
+`JSON.stringify(..)` 工具在遇到 `undefined`、`function`、和 `symbol` 时将会自动地忽略它们。如果在一个 `array` 中遇到这样的值，它会被替换为 `null`（这样数组的位置信息就不会改变）。如果在一个 `object` 的属性中遇到这样的值，这个属性会被简单地剔除掉。
+
+考虑下面的代码：
+
+```
+JSON.stringify( undefined );					// undefined
+JSON.stringify( function(){} );					// undefined
+
+JSON.stringify( [1,undefined,function(){},4] );	// "[1,null,null,4]"
+JSON.stringify( { a:2, b:function(){} } );		// "{"a":2}"
+```
+
+但如果你试着 `JSON.stringify(..)` 一个带有循环引用的 `object`，就会抛出一个错误。
+
+JSON 字符串化有一个特殊行为，如果一个 `object` 值定义了一个 `toJSON()` 方法，这个方法将会被首先调用，以取得用于序列化的值。
+
+如果你打算 JSON 字符串化一个可能含有非法 JSON 值的对象，或者如果这个对象中正好有不适于序列化的值，那么你就应当为它定义一个 `toJSON()` 方法，返回这个 `object` 的一个 *JSON 安全* 版本。
+
+例如：
+
+```
+var o = { };
+
+var a = {
+	b: 42,
+	c: o,
+	d: function(){}
+};
+
+// 在 `a` 内部制造一个循环引用
+o.e = a;
+
+// 这会因循环引用而抛出一个错误
+// JSON.stringify( a );
+
+// 自定义一个 JSON 值序列化
+a.toJSON = function() {
+	// 序列化仅包含属性 `b`
+	return { b: this.b };
+};
+
+JSON.stringify( a ); // "{"b":42}"
+```
+
+一个很常见的误解是，`toJSON()` 应当返回一个 JSON 字符串化的表现形式。这可能是不正确的，除非你事实上想要字符串化 `string` 本身（通常不会！）。`toJSON()` 应当返回合适的实际普通值（无论什么类型），而 `JSON.stringify(..)` 自己会处理字符串化。
+
+换句话说，`toJSON()` 应当被翻译为：“变为一个适用于字符串化的 JSON 安全的值”，而不是像许多开发者错误认为的那样，“变为一个 JSON 字符串”。
+
+**`JSON.stringify(..)` 的第二个参数值是可选的**，它称为 *替换器（replacer）*。这个参数值既可以是一个 `array` 也可以是一个 `function`。与 `toJSON()` 为序列化准备一个值的方式类似，它提供一种过滤机制，指出一个 `object` 的哪一个属性应该或不应该被包含在序列化形式中，来自定义这个 `object` 的递归序列化行为。
+
+如果 *替换器* 是一个 `array`，那么它应当是一个 `string` 的 `array`，它的每一个元素指定了允许被包含在这个 `object` 的序列化形式中的属性名称。如果一个属性不存在于这个列表中，那么它就会被跳过。
+
+如果 *替换器* 是一个 `function`，那么它会为 `object` 本身而被调用一次，并且为这个 `object` 中的每个属性都被调用一次，而且每次都被传入两个参数值，*key* 和 *value*。要在序列化中跳过一个 *key*，可以返回 `undefined`。否则，就返回被提供的 *value*。
+
+**`JSON.stringify(..)` 还可以接收第三个可选参数值**，称为 *填充符（space）*，在对人类友好的输出中它被用做缩进。*填充符*可以是一个正整数，用来指示每一级缩进中应当使用多少个空格字符。或者，*填充符* 可以是一个 `string`，这时每一级缩进将会使用它的前十个字符。
