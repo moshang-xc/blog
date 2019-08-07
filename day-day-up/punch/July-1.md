@@ -22,6 +22,12 @@
 
 ## 2. ['1', '2', '3'].map(parseInt) what and why
 
+先上结果：
+
+```js
+[1, NaN, NaN]
+```
+
 首先需要了解两个函数`parseInt`和`map`
 
 ### [parseInt(string, radix)](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/parseInt)
@@ -152,6 +158,7 @@ function debounce(fn, delay = 50，immediate = true){
   function later(){
     return setTimeout(() => {
 			timer = null;
+      // immediate: true, 表示目标函数知执行一次，之后再也不执行
       if(!immediate){
 				fn.call(context, args);
         context = args = null;
@@ -325,7 +332,7 @@ fixed 此关键字表示背景相对于视口固定。即使一个元素拥有�
 0.1 = 0.0001(1001)...
 ```
 
-**小数转2进制过程**：将该数字乘以2，取出整数部分作为二进制表示的第1位；然后再将小数部分乘以2，将得到的整数部分作为二进制表示的第2位；以此类推，知道小数部分为0。 
+**小数转2进制过程**：将该数字乘以2，取出整数部分作为二进制表示的第1位；然后再将小数部分乘以2，将得到的整数部分作为二进制表示的第2位；以此类推，直到小数部分为0。 
 **特殊情况：** 小数部分出现循环，无法停止，则用有限的二进制位无法准确表示一个小数，这也是在编程语言中表示小数会出现误差的原因
 
 ```js

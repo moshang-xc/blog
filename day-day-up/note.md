@@ -2,7 +2,7 @@
 
 ![原型和原型链](./img/prototype5.png)
 
-> \_\_ptoto__: 原型对象链或者隐式原型，每个对象都有\_\_proto__`属性，指向了创建该对象的构造函数的原型`__proto__`将对象连接起来组成了原型链。
+> \_\_ptoto\__: 原型对象链或者隐式原型，每个对象都有`__proto__`属性，指向了创建该对象的构造函数的原型`__proto__`将对象连接起来组成了原型链。
 
 - 实例.\_\_proto__ === 原型
 - 原型.constructor === 构造函数
@@ -26,10 +26,7 @@ console.log(Object.prototype.__proto__ === null) // true
 在 JavaScript 中，每当定义一个对象（函数也是对象）时候，对象中都会包含一些预定义的属性。其中每个函数对象都有一个prototype 属性，这个属性指向函数的原型对象。使用原型对象的好处是所有对象实例共享它所包含的属性和方法。原型上定义的属性和方法是共享的，构造函数内定义的是私有的。
 
 **原型链**
-每个对象拥有一个原型对象，通过 proto (读音: dunder proto) 指针指向其原型对象，并从中继承方法和属性，同时原型对象也可能拥有原型，这样一层一层，最终指向 null(Object.proptotype.__proto__ 指向的是null)。这种关系被称为原型链 (prototype chain)，通过原型链一个对象可以拥有定义在其他对象中的属性和方法。原型链解决的主要是继承问题。
-
-构造函数 Parent、Parent.prototype 和 实例 p 的关系如下:(`p.__proto__ === Parent.prototype`)
-![原型]()
+每个对象拥有一个原型对象，通过 \_\_proto__ (读音: dunder proto) 指针指向其原型对象，并从中继承方法和属性，同时原型对象也可能拥有原型，这样一层一层，最终指向 null(Object.proptotype.\_\_proto__ 指向的是null)。这种关系被称为原型链 (prototype chain)，通过原型链一个对象可以拥有定义在其他对象中的属性和方法。原型链解决的主要是继承问题。
 
 **prototype 和 __proto__ 区别是什么**
 
@@ -141,8 +138,6 @@ function new(func){
 }
 ```
 
-
-
 ## null和undefined
 
 JavaScript的最初版本是这样区分的：**null是一个表示"无"的对象，转为数值时为0；undefined是一个表示"无"的原始值，转为数值时为NaN。**
@@ -193,8 +188,6 @@ foo;
 var foo = null; 
 console.log(foo);	// null
 ```
-
-
 
 ## 数组去重
 
@@ -266,8 +259,6 @@ true instanceof Boolean // false
 new Boolean(true) instanceof Boolean // true
 
 ```
-
-
 
 **insranceof实现**
 
