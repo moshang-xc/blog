@@ -6,14 +6,22 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>my vue app</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="main.js"></script>
 </head>
 
 <body>
     <div id="app">
-        <input type="text" v-model="message" placeholder="please enter something..." />
-        <label>message: {{message}}</label>
+        <div>
+            <input type="text" v-model="message" placeholder="please enter something..." /> message: {{message}}
+        </div>
+        <div>
+            <input type="text" v-model="name" placeholder="please enter something..." /> name: {{name}}
+        </div>
+        <pre>
+            message: {{message}}
+            name: {{name}}
+        </pre>
     </div>
+    <script src="bundle.js"></script>
 </body>
 
 </html>
