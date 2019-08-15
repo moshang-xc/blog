@@ -713,6 +713,39 @@ new Promise(function(resolve){
 Promise.resolve();
 ```
 
+#### Promise说明
+- `Promise`一旦被解析会永远保持相同的解析结果（完成或拒绝）
+- `thenable`（鸭子类型检查）
+```js
+if( p !== null && 
+    (typeof p === 'function' || typeof p === 'object') && 
+    typeof p.then === 'function'){
+  // 认为它是一个thenable!
+}
+```
+- 使用多个参数调用`resolve(..)`或`reject(..)`，所有第一个参数之外的后续参数都会被无声地忽略
+```js
+new Promise((resolve) => {
+      resolve(1,2,3)
+    })
+    .then(function p(data){
+      console.log(data); // 1
+      console.log(arguments); //[1]
+    });
+```
+- Promise被定义为只能被解析一次。
+```js
+new Promise((resolve, reject) => {
+  resolve(1);
+  reject(2); // 不会执行
+});
+```
+- `Promise`解析或者创建过程中发生语法错误或者手动抛出错误，会强制当前的`Promise`变为拒绝
+- `resolve()`接收基础数据直接返回`fullfilled`的数据，接收一个`Promise`或者`thenable`的值，那么这个值将被递归地展开，而且无论它最终解析结果/状态是什么，都将被`promise`采用。。
+- `reject(..)` 不会像`resolve(..)`那样进行展开。如果你向`reject(..)`传递一个`Promise/thenable`值，这个没有被碰过的值将作为拒绝的理由。
+- `Promise.all([ .. ])`、`Promise.race([ .. ])`将会在任意一个`Promise`解析为拒绝时拒绝。
+- `Promise.resolve()`,传入一个纯粹的`Promise`，`Promise.resolve(..)`不会做任何事情,它仅仅会直接返回这个值，其它值得处理与`resolve`保存一致 
+
 #### 取消promise
 
 1. 通过`Promise.race()`，设置超时机制来取消取消promise的执行
@@ -1011,9 +1044,58 @@ async function async1() {
 
 ## 5. Event Loop
 
-<https://github.com/baiyuze/notes/issues/8>
+所有任务可以分成两种，一种是**同步任务（synchronous）**，另一种是**异步任务（asynchronous）**。同步任务指的是，在**主线程**上排队执行的任务，只有前一个任务执行完毕，才能执行后一个任务；异步任务指的是，不进入主线程、而进入"**任务队列**"（task queue）的任务，只有"任务队列"通知主线程，某个异步任务可以执行了，该任务才会进入主线程执行。
 
+### 宏任务macrotask
 
+**macrotask也叫tasks。** 一些异步任务的回调会依次进入macro task queue，等待后续被调用，这些异步任务包括：
+
+- setTimeout
+- setInterval
+- setImmediate (Node独有)
+- requestAnimationFrame (浏览器独有)
+- I/O
+- UI rendering (浏览器独有)
+
+### 微任务
+
+**microtask，也叫jobs。** 另一些异步任务的回调会依次进入micro task queue，等待后续被调用，这些异步任务包括：
+
+- process.nextTick (Node独有)
+- Promise
+- Object.observe
+- MutationObserver
+
+**具体步骤如下：**
+
+1. 执行全局Script同步代码，这些同步代码有一些是同步语句，有一些是异步语句（比如setTimeout等）；
+
+2. 全局Script代码执行完毕后，调用栈Stack会清空；
+
+3. 从微队列microtask queue中取出位于队首的回调任务，放入调用栈Stack中执行，执行完后microtask queue长度减1；
+
+4. 继续取出位于队首的任务，放入调用栈Stack中执行，以此类推，直到直到把microtask queue中的所有任务都执行完毕。**注意，如果在执行microtask的过程中，又产生了microtask，那么会加入到队列的末尾，也会在这个周期被调用执行**；
+
+5. microtask queue中的所有任务都执行完毕，此时microtask queue为空队列，调用栈Stack也为空；
+
+6. 取出宏队列macrotask queue中位于队首的任务，放入Stack中执行；
+
+7. 执行完毕后，调用栈Stack为空；
+
+8. 重复第3-7个步骤；
+
+9. 重复第3-7个步骤；
+
+**注意：**
+
+> 1. 宏队列macrotask一次只从队列中取一个任务执行，执行完后就去执行微任务队列中的任务；
+> 2. 微任务队列中所有的任务都会被依次取出来执行，直到microtask queue为空；
+> 3. 在执行微队列microtask queue中任务的时候，如果又产生了microtask，那么会继续添加到队列的末尾，也会在这个周期执行，直到microtask queue为空停止。
+> 4. UI rendering，它的节点是在执行完所有的microtask之后，下一个macrotask之前，紧跟着执行UI render。
+
+只要主线程空了，就会去读取"任务队列"，这就是JavaScript的运行机制。这个过程会不断重复。
+
+主线程从"任务队列"中读取事件，这个过程是循环不断的，所以整个的这种运行机制又称为Event Loop（事件循环）。
 
 ## 6. 将数组扁平化并去除其中重复数据，最终得到一个升序且不重复的数组
 
