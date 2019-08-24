@@ -1,9 +1,10 @@
 // 观察者
-import Publish from "./publishSub";
+import Publish from "./publish";
 class Observer {
-    constructor(data, vm) {
+    constructor(data) {
         this.data = data;
-        this.bind();
+        // 观察监听data中的数据字段，当数据发生改变时，通知订阅者
+        this._bind();
     }
 
     _bind() {
@@ -12,7 +13,9 @@ class Observer {
                 pub = new Publish();
             Object.defineProperty(this.data, key, {
                 get() {
-                    pub.subscribe( /*当前监听对象 */ );
+                    if (Publish.target) {
+                        pub.subscribe(Publish.target);
+                    }
                     return val;
                 },
                 set(newVal) {
