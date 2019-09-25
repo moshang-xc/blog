@@ -126,61 +126,6 @@ if(browser.versions.mobile || browser.versions.iWinPhone){
 } 
 ```
 
-## 12. 检测浏览器内核
-
-```js
-function getInternet(){    
-    if(navigator.userAgent.indexOf("MSIE")>0) {    
-      return "MSIE";       //IE浏览器  
-    }  
-
-    if(isFirefox=navigator.userAgent.indexOf("Firefox")>0){    
-      return "Firefox";     //Firefox浏览器  
-    }  
-
-    if(isSafari=navigator.userAgent.indexOf("Safari")>0) {    
-      return "Safari";      //Safan浏览器  
-    }  
-
-    if(isCamino=navigator.userAgent.indexOf("Camino")>0){    
-      return "Camino";   //Camino浏览器  
-    }  
-    if(isMozilla=navigator.userAgent.indexOf("Gecko/")>0){    
-      return "Gecko";    //Gecko浏览器  
-    }    
-} 
-```
-
-## 13. 浏览器视口大小获取
-
-### 1、获取浏览器窗口的可视区域的宽度
-```js
-function getViewPortWidth() {
-    return document.documentElement.clientWidth || document.body.clientWidth;
-}
-```
- 
-### 2、获取浏览器窗口的可视区域的高度
-```js
-function getViewPortHeight() {
-    return document.documentElement.clientHeight || document.body.clientHeight;
-}
-```
- 
-### 3、获取浏览器窗口水平滚动条的位置
-```js
-function getScrollLeft() {
-    return document.documentElement.scrollLeft || document.body.scrollLeft;
-}
-```
- 
-### 4、获取浏览器窗口垂直滚动条的位置
-```js
-function getScrollTop() {
-    return document.documentElement.scrollTop || document.body.scrollTop;
-}
-```
-
 ## 14. 强制移动端页面横屏显示
 
 ```js
@@ -366,4 +311,12 @@ function throttle(fn, delay){
     }
   }
 }
+```
+
+```
+major：主版本号
+minor：次版本号
+patch：补丁号
+
+npm version patch 补丁号+1
 ```
