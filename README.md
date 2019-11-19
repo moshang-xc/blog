@@ -8,6 +8,7 @@
 ## 其它文章
 - [Git操作命令](https://github.com/moshang-xc/Blog/blob/master/article/normal/Git操作命令.md)
 - [npm操作命令](https://github.com/moshang-xc/Blog/blob/master/article/normal/npm.md)
+- [Linux操作命令](https://github.com/moshang-xc/Blog/blob/master/article/normal/linux.md)
 - [unicode](https://github.com/moshang-xc/Blog/blob/master/article/normal/unicode.md)
 - [跨域问题](https://github.com/moshang-xc/Blog/issues/4)
 - [icomoon字体图标导入与使用](https://github.com/moshang-xc/Blog/issues/11)
