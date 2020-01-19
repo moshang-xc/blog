@@ -82,17 +82,67 @@ function foo() {
 
 # this
 
-`this` 既不是函数自身的引用，也不是函数 *词法* 作用域的引用。
+`this` 不会以任何方式指向函数的 **词法作用域**。`this` 既不是函数自身的引用，也不是函数 *词法* 作用域的引用。`this` 不是编写时绑定，而是运行时绑定。`this` 实际上是在函数被调用时建立的一个绑定，它指向 *什么* 是完全由函数被调用的**调用点**来决定的。
 
-`this` 不是编写时绑定，而是运行时绑定。它依赖于函数调用的上下文条件。`this` 绑定与函数声明的位置没有任何关系，而与函数被调用的方式紧密相连。 `this` 是一个完全根据**直接调用点**（函数是如何被调用的）而为每次函数调用建立的绑定。
+**调用点**：函数在代码中被调用的位置不是被申明的位置。
 
-### 调用点
+如下是调用点使用的四种规则：
 
-调用点：函数在代码中被调用的位置（**不是被声明的位置**）
+## 默认绑定
 
-### 判定this
+独立函数调用，这种 `this` 规则是在没有其他规则适用时的默认规则， `this` 指向了全局对象。
 
-按照优先顺序来总结一下从函数调用的调用点来判定 `this` 的规则。按照这个顺序来问问题，然后在第一个规则适用的地方停下。
+```js
+function foo() {
+	console.log( this.a );
+}
+
+var a = 2;
+
+foo(); // 2
+```
+
+们考察调用点来看看 `foo()` 是如何被调用的。在我们的代码段中，`foo()` 是被一个直白的，毫无修饰的函数引用调用的。没有其他的我们将要展示的规则适用于这里，所以 *默认绑定* 在这里适用。
+
+## 隐含绑定
+
+调用点是否有一个环境对象（context object），也称为拥有者（owning）或容器（containing）对象
+
+```js
+function foo() {
+	console.log( this.a );
+}
+
+var obj = {
+	a: 2,
+	foo: foo
+};
+
+obj.foo(); // 2
+```
+
+调用点 *使用* `obj` 环境来 **引用** 函数，所以你 *可以说* `obj` 对象在函数被调用的时间点上“拥有”或“包含”这个 **函数引用**。在 `foo()` 被调用的位置上，它被冠以一个指向 `obj` 的对象引用。当一个方法引用存在一个环境对象时，*隐含绑定* 规则会说：是这个对象应当被用于这个函数调用的 `this` 绑定。
+
+> `strict mode` 下是 `undefined`，否则就是全局对象。
+
+## 明确绑定
+
+call， apply
+
+如果你传递 `null` 或 `undefined` 作为 `call`、`apply` 或 `bind` 的 `this` 绑定参数，那么这些值会被忽略掉，取而代之的是 *默认绑定* 规则将适用于这个调用。
+
+## new 绑定
+
+当在函数前面被加入 `new` 调用时，也就是构造器调用时，下面这些事情会自动完成：
+
+1. 一个全新的对象会凭空创建（就是被构建）
+2. *这个新构建的对象会被接入原形链（[[Prototype]]-linked）*
+3. 这个新构建的对象被设置为函数调用的 `this` 绑定
+4. 除非函数返回一个它自己的其他 **对象**，否则这个被 `new` 调用的函数将 *自动* 返回这个新构建的对象。
+
+## 判定 `this`
+
+现在，我们可以按照优先顺序来总结一下从函数调用的调用点来判定 `this` 的规则了。按照这个顺序来问问题，然后在第一个规则适用的地方停下。
 
 1. 函数是通过 `new` 被调用的吗（**new 绑定**）？如果是，`this` 就是新构建的对象。
 
@@ -106,9 +156,15 @@ function foo() {
 
    `var bar = obj1.foo()`
 
-4. 否则，使用默认的 `this`（**默认绑定**）。如果在 `strict mode` 下，就是 `undefined`，否则是 `global` 对象。
+4. 否则，使用默认的 `this`（**默认绑定**）。如果在 `strict mode` 下，就是 `undefined`，否则是 `global`对象。
 
    `var bar = foo()`
+
+以上，就是理解对于普通的函数调用来说的 `this` 绑定规则 *所需的全部*。是的……几乎是全部。
+
+## 词法 this
+
+Es6箭头函数的`this`与使用四种标准的 `this` 规则不同的是，箭头函数从封闭它的（函数或全局）作用域采用 `this` 绑定。一个箭头函数的词法绑定是不能被覆盖的（就连 `new` 也不行！）。
 
 # 对象
 
@@ -157,11 +213,17 @@ console.log( strPrimitive.charAt( 3 ) );	// "m"
 
 `null` 和 `undefined` 没有对象包装的形式，仅有它们的基本类型值。相比之下，`Date` 的值 *仅可以* 由它们的构造对象形式创建，因为它们没有对应的字面形式。
 
+声明一个函数表达式作为字面对象的一部分，那个函数都不会魔法般地 *属于* 这个对象 —— 仍然仅仅是同一个函数对象的多个引用罢了。
+
+## 拷贝
+
+浅拷贝和深拷贝，`Object.assign()`就是一个内置的浅拷贝。
+
+### Object.assign
+
+`writable`，`enumerable`，` configurable`都为false的属性不会被拷贝，且不会带上拷贝对象的属性描述，拷贝的属性的三个值都为`true`。
+
 ## 内容
-
-### 复制对象
-
-`Object.assign()`属于浅拷贝。
 
 ### 属性描述符
 
@@ -279,7 +341,7 @@ myObject.b; // undefined
 
 ES5 引入了一个方法来覆盖这些默认操作的一部分，但不是在对象级别而是针对每个属性，就是通过 getters 和 setters。Getter 是实际上调用一个隐藏函数来取得值的属性。Setter 是实际上调用一个隐藏函数来设置值的属性。
 
-当你将一个属性定义为拥有 getter 或 setter 或两者兼备，那么它的定义就成为了“访问器描述符”（与“数据描述符”相对）。对于访问器描述符，它的 `value` 和 `writable` 性质因没有意义而被忽略，取而代之的是 JS 将会考虑属性的 `set` 和 `get` 性质（还有 `configurable` 和 `enumerable`）。
+当你将一个属性定义为拥有 getter 或 setter 或两者兼备，那么它的定义就成为了“访问器描述符”（与“数据描述符”相对）。**对于访问器描述符，它的 `value` 和 `writable` 性质因没有意义而被忽略**，取而代之的是 JS 将会考虑属性的 `set` 和 `get` 性质（还有 `configurable` 和 `enumerable`）。
 
 ```
 var myObject = {
@@ -316,6 +378,12 @@ myObject.hasOwnProperty( "b" );	// false
 ```
 
 `in` 操作符会检查属性是否存在于对象 *中*，或者是否存在于 `[[Prototype]]` 链对象遍历的更高层中（详见第五章）。相比之下，`hasOwnProperty(..)` *仅仅* 检查 `myObject` 是否拥有属性，但 *不会* 查询 `[[Prototype]]` 链。
+
+```js
+
+```
+
+
 
 #### 枚举（Enumeration）
 
@@ -355,6 +423,17 @@ Object.getOwnPropertyNames( myObject ); // ["a", "b"]
 ```
 
 > `for in`和`Object.key()`只能枚举`enumerable`为`true`的属性
+
+```js
+let obj = Object.create({a:1});
+obj.b = 2;
+
+Object.keys(obj); // ["b"]
+for(let key in obj){
+    console.log(key); // b a
+}
+'a' in obj // true
+```
 
 [https://github.com/getify/You-Dont-Know-JS/blob/1ed-zh-CN/this%20&%20object%20prototypes/README.md#you-dont-know-js-this--object-prototypes](https://github.com/getify/You-Dont-Know-JS/blob/1ed-zh-CN/this & object prototypes/README.md#you-dont-know-js-this--object-prototypes)
 
