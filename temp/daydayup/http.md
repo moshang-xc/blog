@@ -1,6 +1,4 @@
-# Http
-
-# http, https/2, https
+# http, https/2, https, TCP
 
 ### 问题：简单讲解一下 http2 的多路复用
 
@@ -21,76 +19,407 @@ HTTP（超文本传输协议）是一种可扩展的协议，无状态的。它�
 
 >  注意，HTTP本质是无状态的，使用Cookies可以创建有状态的会话。
 
+
+
+### HTTP 缺点
+
+#### 无状态
+
+所谓的优点和缺点还是要分场景来看的，对于 HTTP 而言，最具争议的地方在于它的**无状态**。
+
+在需要长连接的场景中，需要保存大量的上下文信息，以免传输大量重复的信息，那么这时候无状态就是 http 的缺点了。
+
+但与此同时，另外一些应用仅仅只是为了获取一些数据，不需要保存连接上下文信息，无状态反而减少了网络开销，成为了 http 的优点。
+
+#### 明文传输
+
+即协议里的报文(主要指的是头部)不使用二进制数据，而是文本形式。
+
+这当然对于调试提供了便利，但同时也让 HTTP 的报文信息暴露给了外界，给攻击者也提供了便利。`WIFI陷阱`就是利用 HTTP 明文传输的缺点，诱导你连上热点，然后疯狂抓你所有的流量，从而拿到你的敏感信息。
+
+#### 队头阻塞问题
+
+当 http 开启长连接时，共用一个 TCP 连接，同一时刻只能处理一个请求，那么当前请求耗时过长的情况下，其它的请求只能处于阻塞状态，也就是著名的**队头阻塞**问题。接下来会有一小节讨论这个问题。
+
 ### http报文
 
-**请求（Request）**
+#### 请求（Request）
 
 请求由以下元素组成：
 
 - 请求行（http method，资源地址，http协议版本号）
 - 请求头（http headers）
+- 空行
 - 请求体（发送的资源body）
 
 ![请求报文](../img/1.jpg)
 
-**响应**
+#### 响应
 
 响应报文包含了下面的元素：
 
 - 状态行（http协议版本号，状态码，状态信息）
 - 响应头（http headers）
+- 空行
 - 响应体（获取的资源body）
 
 ![响应报文](../img/2.jpg)
 
+> 空行很重要，用来区分开`头部`和`实体`。 
+>
+> 如果说在头部中间故意加一个空行会怎么样？
+>
+> 那么空行后的内容全部被视为实体。实体也就是`body`部分。请求报文对应`请求体`, 响应报文对应`响应体`。
+
 ### 请求方法
 
-截止到HTTP1.1共有下面几种方法：
+`http/1.1`规定了以下请求方法:
 
-| 方法    | 描述                                                         |
-| :------ | :----------------------------------------------------------- |
-| GET     | GET方法请求一个指定资源的表示形式. 使用GET的请求应该只被用于获取数据. |
-| POST    | POST方法用于将实体提交到指定的资源，通常导致在服务器上的状态变化或副作用. |
-| PUT     | PUT请求会身向指定资源位置上传其最新内容，PUT方法是幂等的方法。通过该方法客户端可以将指定资源的最新数据传送给服务器取代指定的资源的内容。 |
-| PATCH   | PATCH方法用于对资源应用部分修改                              |
-| DELETE  | DELETE请求用于请求服务器删除所请求URI所标识的资源。DELETE请求后指定资源会被删除. |
-| OPTIONS | 允许客户端查看服务器的性能。                                 |
-| CONNECT | HTTP/1.1协议中预留给能够将连接改为管道方式的代理服务器。     |
-| HEAD    | 类似于get请求，只不过返回的响应中没有具体的内容，用于获取报头 |
-| TRACE   | 回显服务器收到的请求，主要用于测试或诊断。                   |
+- GET: 通常用来获取资源
+- HEAD: 获取资源的元信息
+- POST: 提交数据，即上传数据
+- PUT: 修改数据
+- DELETE: 删除资源(几乎用不到)
+- CONNECT: 建立连接隧道，用于代理服务器
+- OPTIONS: 列出可对资源实行的请求方法，用来跨域请求
+- TRACE: 追踪请求-响应的传输路径
 
-### http状态码，缓存
+#### GET 和 POST 有什么区别？
+
+首先最直观的是语义上的区别。
+
+而后又有这样一些具体的差别:
+
+- 从**缓存**的角度，GET 请求会被浏览器主动缓存下来，留下历史记录，而 POST 默认不会。
+- 从**编码**的角度，GET 只能进行 URL 编码，只能接收 ASCII 字符，而 POST 没有限制。
+- 从**参数**的角度，GET 一般放在 URL 中，因此不安全，POST 放在请求体中，更适合传输敏感信息。
+- 从**幂等性**的角度，`GET`是**幂等**的，而`POST`不是。(`幂等`表示执行相同的操作，结果也是相同的)
+- 从**TCP**的角度，GET 请求会把请求报文一次性发出去，而 POST 会分为两个 TCP 数据包，首先发 header 部分，如果服务器响应 100(continue)， 然后发 body 部分。(**火狐**浏览器除外，它的 POST 请求只发一个 TCP 包)
+
+
+
+### http状态码
+
+RFC 规定 HTTP 的状态码为**三位数**，被分为五类:
+
+- **1xx**: 表示目前是协议处理的中间状态，还需要后续操作。
+- **2xx**: 表示成功状态。
+- **3xx**: 重定向状态，资源位置发生变动，需要重新请求。
+- **4xx**: 请求报文有误。
+- **5xx**: 服务器端发生错误。
+
+接下来就一一分析这里面具体的状态码。
+
+#### 1xx
+
+**101 Switching Protocols**。在`HTTP`升级为`WebSocket`的时候，如果服务器同意变更，就会发送状态码 101。
+
+#### 2xx
+
+**200 OK**是见得最多的成功状态码。通常在响应体中放有数据。
+
+**204 No Content**含义与 200 相同，但响应头后没有 body 数据。
+
+**206 Partial Content**顾名思义，表示部分内容，它的使用场景为 HTTP 分块下载和断点续传，当然也会带上相应的响应头字段`Content-Range`。
+
+#### 3xx
+
+**301 Moved Permanently**即永久重定向，对应着**302 Found**，即临时重定向。
+
+比如你的网站从 HTTP 升级到了 HTTPS 了，以前的站点再也不用了，应当返回`301`，这个时候浏览器默认会做缓存优化，在第二次访问的时候自动访问重定向的那个地址。
+
+而如果只是暂时不可用，那么直接返回`302`即可，和`301`不同的是，浏览器并不会做缓存优化。
+
+**304 Not Modified**: 当协商缓存命中时会返回这个状态码。详见[浏览器缓存](http://47.98.159.95/my_blog/perform/001.html)
+
+#### 4xx
+
+**400 Bad Request**: 开发者经常看到一头雾水，只是笼统地提示了一下错误，并不知道哪里出错了。
+
+**403 Forbidden**: 这实际上并不是请求报文出错，而是服务器禁止访问，原因有很多，比如法律禁止、信息敏感。
+
+**404 Not Found**: 资源未找到，表示没在服务器上找到相应的资源。
+
+**405 Method Not Allowed**: 请求方法不被服务器端允许。
+
+**406 Not Acceptable**: 资源无法满足客户端的条件。
+
+**408 Request Timeout**: 服务器等待了太长时间。
+
+**409 Conflict**: 多个请求发生了冲突。
+
+**413 Request Entity Too Large**: 请求体的数据过大。
+
+**414 Request-URI Too Long**: 请求行里的 URI 太大。
+
+**429 Too Many Request**: 客户端发送的请求过多。
+
+**431 Request Header Fields Too Large**请求头的字段内容太大。
+
+#### 5xx
+
+**500 Internal Server Error**: 仅仅告诉你服务器出错了，出了啥错咱也不知道。
+
+**501 Not Implemented**: 表示客户端请求的功能还不支持。
+
+**502 Bad Gateway**: 服务器自身是正常的，但访问的时候出错了，啥错误咱也不知道。
+
+**503 Service Unavailable**: 表示服务器当前很忙，暂时无法响应服务。
+
+
 
 [见https://github.com/moshang-xc/Blog/issues/7](https://github.com/moshang-xc/Blog/issues/7)
 
-### 常见首部
+### 对于定长和不定长的数据，HTTP 是怎么传输的
 
-- **通用首部字段（请求报文与响应报文都会使用的首部字段）**
-  - Date：创建报文时间
-  - Connection：连接的管理
-  - Cache-Control：缓存的控制
-  - Transfer-Encoding：报文主体的传输编码方式
-- **请求首部字段（请求报文会使用的首部字段）**
-  - Host：请求资源所在服务器
-  - Accept：可处理的媒体类型
-  - Accept-Charset：可接收的字符集
-  - Accept-Encoding：可接受的内容编码
-  - Accept-Language：可接受的自然语言
-- **响应首部字段（响应报文会使用的首部字段）**
-  - Accept-Ranges：可接受的字节范围
-  - Location：令客户端重新定向到的URI
-  - Server：HTTP服务器的安装信息
-- **实体首部字段（请求报文与响应报文的的实体部分使用的首部字段）**
-  - Allow：资源可支持的HTTP方法
-  - Content-Type：实体主类的类型
-  - Content-Encoding：实体主体适用的编码方式
-  - Content-Language：实体主体的自然语言
-  - Content-Length：实体主体的的字节数
-  - Content-Range：实体主体的位置范围，一般用于发出部分请求时使用
+#### 定长包体
 
-### http历史
+对于定长包体而言，发送端在传输的时候一般会带上 `Content-Length`, 来指明包体的长度。
 
-#### http0.9
+我们用一个`nodejs`服务器来模拟一下:
+
+```js
+const http = require('http');
+
+const server = http.createServer();
+
+server.on('request', (req, res) => {
+  if(req.url === '/') {
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Length', 10);
+    res.write("helloworld");
+  }
+})
+
+server.listen(8081, () => {
+  console.log("成功启动");
+})
+```
+
+启动后访问: **localhost:8081**。
+
+浏览器中显示如下:
+
+```
+helloworld
+```
+
+这是长度正确的情况，那不正确的情况是如何处理的呢？
+
+我们试着把这个长度设置的小一些:
+
+```js
+res.setHeader('Content-Length', 8);
+```
+
+重启服务，再次访问，现在浏览器中内容如下:
+
+```
+hellowor
+```
+
+那后面的`ld`哪里去了呢？实际上在 http 的响应体中直接被截去了。
+
+然后我们试着将这个长度设置得大一些:
+
+```js
+res.setHeader('Content-Length', 12);
+```
+
+此时浏览器显示如下:
+
+```
+ 无法正常运行
+```
+
+直接无法显示了。可以看到`Content-Length`对于 http 传输过程起到了十分关键的作用，如果设置不当可以直接导致传输失败。
+
+#### 不定长包体
+
+上述是针对于`定长包体`，那么对于`不定长包体`而言是如何传输的呢？
+
+这里就必须介绍另外一个 http 头部字段了:
+
+```js
+Transfer-Encoding: chunked
+```
+
+表示分块传输数据，设置这个字段后会自动产生两个效果:
+
+- Content-Length 字段会被忽略
+- 基于长连接持续推送动态内容
+
+我们依然以一个实际的例子来模拟分块传输，nodejs 程序如下:
+
+```js
+const http = require('http');
+
+const server = http.createServer();
+
+server.on('request', (req, res) => {
+  if(req.url === '/') {
+    res.setHeader('Content-Type', 'text/html; charset=utf8');
+    res.setHeader('Content-Length', 10);
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.write("<p>来啦</p>");
+    setTimeout(() => {
+      res.write("第一次传输<br/>");
+    }, 1000);
+    setTimeout(() => {
+      res.write("第二次传输");
+      res.end()
+    }, 2000);
+  }
+})
+
+server.listen(8009, () => {
+  console.log("成功启动");
+})
+```
+
+### HTTP 如何处理大文件的传输？
+
+对于几百 M 甚至上 G 的大文件来说，如果要一口气全部传输过来显然是不现实的，会有大量的等待时间，严重影响用户体验。因此，HTTP 针对这一场景，采取了`范围请求`的解决方案，允许客户端仅仅请求一个资源的一部分。
+
+#### 如何支持
+
+当然，前提是服务器要支持**范围请求**，要支持这个功能，就必须加上这样一个响应头:
+
+```
+Accept-Ranges: none
+```
+
+用来告知客户端这边是支持范围请求的。
+
+#### Range 字段拆解
+
+而对于客户端而言，它需要指定请求哪一部分，通过`Range`这个请求头字段确定，格式为`bytes=x-y`。接下来就来讨论一下这个 Range 的书写格式:
+
+- **0-499**表示从开始到第 499 个字节。
+- **500**- 表示从第 500 字节到文件终点。
+- **-100**表示文件的最后100个字节。
+
+服务器收到请求之后，首先验证范围**是否合法**，如果越界了那么返回`416`错误码，否则读取相应片段，返回`206`状态码。
+
+同时，服务器需要添加`Content-Range`字段，这个字段的格式根据请求头中`Range`字段的不同而有所差异。
+
+具体来说，请求`单段数据`和请求`多段数据`，响应头是不一样的。
+
+举个例子:
+
+```
+// 单段数据
+Range: bytes=0-9
+// 多段数据
+Range: bytes=0-9, 30-39
+
+```
+
+接下来我们就分别来讨论着两种情况。
+
+#### 单段数据
+
+对于`单段数据`的请求，返回的响应如下:
+
+```
+HTTP/1.1 206 Partial Content
+Content-Length: 10
+Accept-Ranges: bytes
+Content-Range: bytes 0-9/100
+
+i am xxxxx
+```
+
+值得注意的是`Content-Range`字段，`0-9`表示请求的返回，`100`表示资源的总大小，很好理解。
+
+#### 多段数据
+
+接下来我们看看多段请求的情况。得到的响应会是下面这个形式:
+
+```
+HTTP/1.1 206 Partial Content
+Content-Type: multipart/byteranges; boundary=00000010101
+Content-Length: 189
+Connection: keep-alive
+Accept-Ranges: bytes
+
+
+--00000010101
+Content-Type: text/plain
+Content-Range: bytes 0-9/96
+
+i am xxxxx
+--00000010101
+Content-Type: text/plain
+Content-Range: bytes 20-29/96
+
+eex jspy e
+--00000010101--
+```
+
+这个时候出现了一个非常关键的字段`Content-Type: multipart/byteranges;boundary=00000010101`，它代表了信息量是这样的:
+
+- 请求一定是多段数据请求
+- 响应体中的分隔符是 00000010101
+
+因此，在响应体中各段数据之间会由这里指定的分隔符分开，而且在最后的分隔末尾添上`--`表示结束。
+
+以上就是 http 针对大文件传输所采用的手段。
+
+### HTTP 中如何处理表单数据的提交？ 	
+
+在 http 中，有两种主要的表单提交的方式，体现在两种不同的`Content-Type`取值:
+
+- application/x-www-form-urlencoded
+- multipart/form-data
+
+由于表单提交一般是`POST`请求，很少考虑`GET`，因此这里我们将默认提交的数据放在请求体中。
+
+#### application/x-www-form-urlencoded
+
+对于`application/x-www-form-urlencoded`格式的表单内容，有以下特点:
+
+- 其中的数据会被编码成以`&`分隔的键值对
+- 字符以**URL编码方式**编码。
+
+如：
+
+```
+// 转换过程: {a: 1, b: 2} -> a=1&b=2 -> 如下(最终形式)
+"a%3D1%26b%3D2"
+复制代码
+```
+
+#### multipart/form-data
+
+对于`multipart/form-data`而言:
+
+- 请求头中的`Content-Type`字段会包含`boundary`，且`boundary`的值有浏览器默认指定。例: `Content-Type: multipart/form-data;boundary=----WebkitFormBoundaryRRJKeWfHPGrS4LKe`。
+- 数据会分为多个部分，每两个部分之间通过分隔符来分隔，每部分表述均有 HTTP 头部描述子包体，如`Content-Type`，在最后的分隔符会加上`--`表示结束。
+
+相应的`请求体`是下面这样:
+
+```
+Content-Disposition: form-data;name="data1";
+Content-Type: text/plain
+data1
+----WebkitFormBoundaryRRJKeWfHPGrS4LKe
+Content-Disposition: form-data;name="data2";
+Content-Type: text/plain
+data2
+----WebkitFormBoundaryRRJKeWfHPGrS4LKe--
+复制代码
+```
+
+#### 小结
+
+值得一提的是，`multipart/form-data` 格式最大的特点在于:**每一个表单元素都是独立的资源表述**。另外，你可能在写业务的过程中，并没有注意到其中还有`boundary`的存在，如果你打开抓包工具，确实可以看到不同的表单元素被拆分开了，之所以在平时感觉不到，是以为浏览器和 HTTP 给你封装了这一系列操作。
+
+而且，在实际的场景中，对于图片等文件的上传，基本采用`multipart/form-data`而不用`application/x-www-form-urlencoded`，因为没有必要做 URL 编码，带来巨大耗时的同时也占用了更多的空间。
+
+## http历史
+
+### http0.9
 
 HTTP 的最早版本诞生在 1991 年，这个最早版本和现在比起来极其简单，没有 HTTP 头，没有状态码，甚至版本号也没有，后来它的版本号才被定为 0.9 来和其他版本的 HTTP 区分。HTTP/0.9 只支持一种方法—— Get，请求只有一行。
 
@@ -108,7 +437,7 @@ Hello world
 
 当 TCP 建立连接之后，服务器向客户端返回 HTML 格式的字符串。发送完毕后，就关闭 TCP 连接。由于没有状态码和错误代码，如果服务器处理的时候发生错误，只会传回一个特殊的包含问题描述信息的 HTML 文件。这就是最早的 HTTP/0.9 版本。
 
-#### http1.0
+### http1.0
 
 相比 HTTP/0.9，HTTP/1.0 主要有如下特性：
 
@@ -118,7 +447,7 @@ Hello world
 
 一个典型的 HTTP/1.0 的请求像这样：
 
-```php+HTML
+```php
 GET /hello.html HTTP/1.0
 User-Agent:NCSA_Mosaic/2.0(Windows3.1)
 
@@ -127,13 +456,13 @@ Date: Tue, 15 Nov 1996 08:12:31 GMT
 Server: CERN/3.0 libwww/2.17
 Content-Type: text/html
 
-<HTML>
+<html>
 一个包含图片的页面
 <IMGSRC="/smile.gif">
-</HTML>
+</html>
 ```
 
-#### http1.1
+### http1.1
 
 HTTP/1.1 更多的是作为对 HTTP/1.0 的完善，在 HTTP1.1 中，主要具有如下改进：
 
@@ -169,6 +498,31 @@ HTTP/1.1中引入了Chunked transfer-coding来解决上面这个问题，发送�
 HTTP/1.1在1.0的基础上加入了一些cache的新特性，当缓存对象的Age超过Expire时变为stale对象，cache不需要直接抛弃stale对象，而是与源服务器进行重新激活（revalidation）。
 
 - 新增了 OPTIONS,PUT, DELETE, TRACE, CONNECT 方法
+
+### HTTP1.1 如何解决 HTTP 的队头阻塞问题？
+
+#### 什么是 HTTP 队头阻塞？
+
+从前面的小节可以知道，HTTP 传输是基于`请求-应答`的模式进行的，报文必须是一发一收，但值得注意的是，里面的任务被放在一个任务队列中串行执行，一旦队首的请求处理太慢，就会阻塞后面请求的处理。这就是著名的`HTTP队头阻塞`问题。
+
+#### 并发连接
+
+对于一个域名允许分配多个长连接，那么相当于增加了任务队列，不至于一个队伍的任务阻塞其它所有任务。在RFC2616规定过客户端最多并发 2 个连接，不过事实上在现在的浏览器标准中，这个上限要多很多，Chrome 中是 6 个。
+
+但其实，即使是提高了并发连接，还是不能满足人们对性能的需求。
+
+#### 域名分片
+
+一个域名不是可以并发 6 个长连接吗？那我就多分几个域名。
+
+比如 content1.sanyuan.com 、content2.sanyuan.com。
+
+这样一个`sanyuan.com`域名下可以分出非常多的二级域名，而它们都指向同样的一台服务器，能够并发的长连接数更多了，事实上也更好地解决了队头阻塞的问题。
+
+
+
+
+
 
 ### http2
 
@@ -243,6 +597,8 @@ HTTP2与HTTP1.1最重要的区别就是**解决了线头阻塞的**问题！其�
   对于每个流来说，两端都必须告诉对方自己还有足够的空间来处理新的数据，而在该窗口被扩大前，另一端只被允许发送这么多数据。
 
   而只有数据帧会受到流量控制。
+  
+  
 
 ## https
 
@@ -308,7 +664,7 @@ HTTPS在传输数据之前需要客户端（浏览器）与服务端（网站）
 
 参考链接：https://mp.weixin.qq.com/s/StqqafHePlBkWAPQZg3NrA
 
-## Http与Https的区别：
+### Http与Https的区别：
 
 > Http与Https的区别：
 
@@ -318,11 +674,26 @@ HTTPS在传输数据之前需要客户端（浏览器）与服务端（网站）
 4. HTTP协议运行在TCP之上，所有传输的内容都是明文，HTTPS运行在SSL/TLS之上，SSL/TLS运行在TCP之上，所有传输的内容都经过加密的。
 5. HTTPS可以有效的防止运营商劫持
 
+# URI
+
+**URI**, 全称为(Uniform Resource Identifier), 也就是**统一资源标识符**，它的作用很简单，就是区分互联网上不同的资源。
+
+但是，它并不是我们常说的`网址`, 网址指的是`URL`, 实际上`URI`包含了`URN`和`URL`两个部分，由于 URL 过于普及，就默认将 URI 视为 URL 了。
 
 
-### URL构成
 
 ![URL](../img/3.jpg)
+
+## URI 编码
+
+URI 只能使用`ASCII`, ASCII 之外的字符是不支持显示的，而且还有一部分符号是界定符，如果不加以处理就会导致解析出错。
+
+因此，URI 引入了`编码`机制，将所有**非 ASCII 码字符**和**界定符**转为十六进制字节值，然后在前面加个`%`。
+
+如，空格被转义成了`%20`，**三元**被转义成了`%E4%B8%89%E5%85%83`。
+
+
+
 
 # TCP
 
@@ -390,409 +761,6 @@ MSL：报文段最大生存时间，它是任何报文段被丢弃前在网络�
 
 
 
-# AJAX
+参考：
 
-先来看一段使用`XMLHttpRequest`发送`Ajax`请求的简单示例代码。
-
-```js
-function sendAjax() {
-  //构造表单数据
-  var formData = new FormData();
-  formData.append('username', 'johndoe');
-  formData.append('id', 123456);
-  //创建xhr对象 
-  var xhr = new XMLHttpRequest();
-  //设置xhr请求的超时时间
-  xhr.timeout = 3000;
-  //设置响应返回的数据格式
-  xhr.responseType = "text";
-  //创建一个 post 请求，采用异步
-  xhr.open('POST', '/server', true);
-  //注册相关事件回调处理函数
-  xhr.onload = function(e) { 
-    if(this.status == 200||this.status == 304){
-        alert(this.responseText);
-    }
-  };
-  xhr.ontimeout = function(e) { ... };
-  xhr.onerror = function(e) { ... };
-  xhr.upload.onprogress = function(e) { ... };
-  
-  //发送数据
-  xhr.send(formData);
-}
-```
-
-上面是一个使用`xhr`发送表单数据的示例，整个流程可以参考注释。
-
-## 如何设置request header
-
-`xhr`提供了`setRequestHeader`来允许我们修改请求 header。
-
-> ```
-> void setRequestHeader(DOMString header, DOMString value);
-> ```
-
-**注意点**：
-
-- 方法的第一个参数 header 大小写不敏感，即可以写成`content-type`，也可以写成`Content-Type`，甚至写成`content-Type`;
-- `Content-Type`的默认值与具体发送的数据类型有关，请参考本文【可以发送什么类型的数据】一节；
-- `setRequestHeader`必须在`open()`方法之后，`send()`方法之前调用，否则会抛错；
-- `setRequestHeader`可以调用多次，最终的值不会采用覆盖`override`的方式，而是采用追加`append`的方式。下面是一个示例代码：
-
-```
-var client = new XMLHttpRequest();
-client.open('GET', 'demo.cgi');
-client.setRequestHeader('X-Test', 'one');
-client.setRequestHeader('X-Test', 'two');
-// 最终request header中"X-Test"为: one, two
-client.send();
-```
-
-## 如何获取response header
-
-`xhr`提供了2个用来获取响应头部的方法：`getAllResponseHeaders`和`getResponseHeader`。前者是获取 response 中的所有header 字段，后者只是获取某个指定 header 字段的值。另外，`getResponseHeader(header)`的`header`参数不区分大小写。
-
-> ```
-> DOMString getAllResponseHeaders();
-> DOMString getResponseHeader(DOMString header);
-> ```
-
-限制：
-
-- [W3C的 xhr 标准中做了限制](https://www.w3.org/TR/XMLHttpRequest/)，规定客户端无法获取 response 中的 `Set-Cookie`、`Set-Cookie2`这2个字段，无论是同域还是跨域请求；
-- [W3C 的 cors 标准对于跨域请求也做了限制](https://www.w3.org/TR/cors/#access-control-allow-credentials-response-header)，规定对于跨域请求，客户端允许获取的response header字段只限于“`simple response header`”和“`Access-Control-Expose-Headers`” （两个名词的解释见下方）。
-
-> "`simple response header`"包括的 header 字段有：`Cache-Control`,`Content-Language`,`Content-Type`,`Expires`,`Last-Modified`,`Pragma`;
-> "`Access-Control-Expose-Headers`"：首先得注意是"`Access-Control-Expose-Headers`"进行**跨域请求**时响应头部中的一个字段，对于同域请求，响应头部是没有这个字段的。这个字段中列举的 header 字段就是服务器允许暴露给客户端访问的字段。
-
-所以`getAllResponseHeaders()`只能拿到**限制以外**（即被视为`safe`）的header字段，而不是全部字段；而调用`getResponseHeader(header)`方法时，`header`参数必须是**限制以外**的header字段，否则调用就会报`Refused to get unsafe header`的错误。
-
-## 如何指定`xhr.response`的数据类型
-
-有2种方法可以实现，一个是`level 1`就提供的`overrideMimeType()`方法，另一个是`level 2`才提供的`xhr.responseType`属性。
-
-#### `xhr.overrideMimeType()`
-
-`overrideMimeType`是`xhr level 1`就有的方法，所以浏览器兼容性良好。这个方法的作用就是用来重写`response`的`content-type`，这样做有什么意义呢？比如：server 端给客户端返回了一份`document`或者是 `xml`文档，我们希望最终通过`xhr.response`拿到的就是一个`DOM`对象，那么就可以用`xhr.overrideMimeType('text/xml; charset = utf-8')`来实现。
-
-#### `xhr.responseType`
-
-`responseType`是`xhr level 2`新增的属性，用来指定`xhr.response`的数据类型，目前还存在些兼容性问题，可以参考本文的【`XMLHttpRequest`的兼容性】这一小节。那么`responseType`可以设置为哪些格式呢，我简单做了一个表，如下：
-
-| 值              | `xhr.response` 数据类型 | 说明                             |
-| --------------- | ----------------------- | -------------------------------- |
-| `""`            | `String`字符串          | 默认值(在不设置`responseType`时) |
-| `"text"`        | `String`字符串          |                                  |
-| `"document"`    | `Document`对象          | 希望返回 `XML` 格式数据时使用    |
-| `"json"`        | `javascript` 对象       | 存在兼容性问题，IE10/IE11不支持  |
-| `"blob"`        | `Blob`对象              |                                  |
-| `"arrayBuffer"` | `ArrayBuffer`对象       |                                  |
-
-
-
-下面是同样是获取一张图片的代码示例，相比`xhr.overrideMimeType`,用`xhr.response`来实现简单得多。
-
-```
-var xhr = new XMLHttpRequest();
-xhr.open('GET', '/path/to/image.png', true);
-//可以将`xhr.responseType`设置为`"blob"`也可以设置为`" arrayBuffer"`
-//xhr.responseType = 'arrayBuffer';
-xhr.responseType = 'blob';
-
-xhr.onload = function(e) {
-  if (this.status == 200) {
-    var blob = this.response;
-    ...
-  }
-};
-
-xhr.send();
-```
-
-## 如何获取response数据
-
-`xhr`提供了3个属性来获取请求返回的数据，分别是：`xhr.response`、`xhr.responseText`、`xhr.responseXML`
-
-- `xhr.response`
-  - 默认值：空字符串`""`
-  - 当请求完成时，此属性才有正确的值
-  - 请求未完成时，此属性的值可能是`""`或者 `null`，具体与 `xhr.responseType`有关：当`responseType`为`""`或`"text"`时，值为`""`；`responseType`为其他值时，值为 `null`
-- `xhr.responseText`
-  - 默认值为空字符串`""`
-  - 只有当 `responseType` 为`"text"`、`""`时，`xhr`对象上才有此属性，此时才能调用`xhr.responseText`，否则抛错
-  - 只有当请求成功时，才能拿到正确值。以下2种情况下值都为空字符串`""`：请求未完成、请求失败
-- `xhr.responseXML`
-  - 默认值为 `null`
-  - 只有当 `responseType` 为`"text"`、`""`、`"document"`时，`xhr`对象上才有此属性，此时才能调用`xhr.responseXML`，否则抛错
-  - 只有当请求成功且返回数据被正确解析时，才能拿到正确值。以下3种情况下值都为`null`：请求未完成、请求失败、请求成功但返回数据无法被正确解析时
-
-## 如何追踪`ajax`请求的当前状态
-
-在发一个`ajax`请求后，如果想追踪请求当前处于哪种状态，该怎么做呢？
-
-用`xhr.readyState`这个属性即可追踪到。这个属性是只读属性，总共有5种可能值，分别对应`xhr`不同的不同阶段。每次`xhr.readyState`的值发生变化时，都会触发`xhr.onreadystatechange`事件，我们可以在这个事件中进行相关状态判断。
-
-```
-  xhr.onreadystatechange = function () {
-    switch(xhr.readyState){
-      case 1://OPENED
-        //do something
-            break;
-      case 2://HEADERS_RECEIVED
-        //do something
-        break;
-      case 3://LOADING
-        //do something
-        break;
-      case 4://DONE
-        //do something
-        break;
-    }
-```
-
-| 值   | 状态                             | 描述                                                         |
-| ---- | -------------------------------- | ------------------------------------------------------------ |
-| `0`  | `UNSENT` (初始状态，未打开)      | 此时`xhr`对象被成功构造，`open()`方法还未被调用              |
-| `1`  | `OPENED` (已打开，未发送)        | `open()`方法已被成功调用，`send()`方法还未被调用。注意：只有`xhr`处于`OPENED`状态，才能调用`xhr.setRequestHeader()`和`xhr.send()`,否则会报错 |
-| `2`  | `HEADERS_RECEIVED`(已获取响应头) | `send()`方法已经被调用, 响应头和响应状态已经返回             |
-| `3`  | `LOADING` (正在下载响应体)       | 响应体(`response entity body`)正在下载中，此状态下通过`xhr.response`可能已经有了响应数据 |
-| `4`  | `DONE` (整个数据传输过程结束)    | 整个数据传输过程结束，不管本次请求是成功还是失败             |
-
-## 如何设置请求的超时时间
-
-如果请求过了很久还没有成功，为了不会白白占用的网络资源，我们一般会主动终止请求。`XMLHttpRequest`提供了`timeout`属性来允许设置请求的超时时间。
-
-> ```
-> xhr.timeout
-> ```
-
-单位：milliseconds 毫秒
-默认值：`0`，即不设置超时
-
-很多同学都知道：从**请求开始** 算起，若超过 `timeout` 时间请求还没有结束（包括成功/失败），则会触发ontimeout事件，主动结束该请求。
-
-【那么到底什么时候才算是**请求开始** ？】
-——`xhr.onloadstart`事件触发的时候，也就是你调用`xhr.send()`方法的时候。
-因为`xhr.open()`只是创建了一个连接，但并没有真正开始数据的传输，而`xhr.send()`才是真正开始了数据的传输过程。只有调用了`xhr.send()`，才会触发`xhr.onloadstart` 。
-
-【那么什么时候才算是**请求结束** ？】
-—— `xhr.loadend`事件触发的时候。
-
-另外，还有2个需要注意的坑儿：
-
-1. 可以在 `send()`之后再设置此`xhr.timeout`，但计时起始点仍为调用`xhr.send()`方法的时刻。
-2. 当`xhr`为一个`sync`同步请求时，`xhr.timeout`必须置为`0`，否则会抛错。原因可以参考本文的【如何发一个同步请求】一节。
-
-## 如何发一个同步请求
-
-`xhr`默认发的是异步请求，但也支持发同步请求（当然实际开发中应该尽量避免使用）。到底是异步还是同步请求，由`xhr.open（）`传入的`async`参数决定。
-
-> ```
-> open(method, url [, async = true [, username = null [, password = null]]])
-> ```
-
-- `method`: 请求的方式，如`GET/POST/HEADER`等，这个参数不区分大小写
-- `url`: 请求的地址，可以是相对地址如`example.php`，这个**相对**是相对于当前网页的`url`路径；也可以是绝对地址如`http://www.example.com/example.php`
-- `async`: 默认值为`true`，即为异步请求，若`async=false`，则为同步请求
-
-在我认真研读W3C 的 xhr 标准前，我总以为同步请求和异步请求只是阻塞和非阻塞的区别，其他什么事件触发、参数设置应该是一样的，事实证明我错了。
-
-W3C 的 xhr标准中关于`open()`方法有这样一段说明：
-
-> Throws an "InvalidAccessError" exception if async is false, the JavaScript global environment is a document environment, and either the timeout attribute is not zero, the withCredentials attribute is true, or the responseType attribute is not the empty string.
-
-从上面一段说明可以知道，当`xhr`为同步请求时，有如下限制：
-
-- `xhr.timeout`必须为`0`
-- `xhr.withCredentials`必须为 `false`
-- `xhr.responseType`必须为`""`（注意置为`"text"`也不允许）
-
-若上面任何一个限制不满足，都会抛错，而对于异步请求，则没有这些参数设置上的限制。
-
-之前说过页面中应该尽量避免使用`sync`同步请求，为什么呢？
-因为我们无法设置请求超时时间（`xhr.timeout`为`0`，即不限时）。在不限制超时的情况下，有可能同步请求一直处于`pending`状态，服务端迟迟不返回响应，这样整个页面就会一直阻塞，无法响应用户的其他交互。
-
-另外，标准中并没有提及同步请求时事件触发的限制，但实际开发中我确实遇到过部分应该触发的事件并没有触发的现象。如在 chrome中，当`xhr`为同步请求时，在`xhr.readyState`由`2`变成`3`时，并不会触发 `onreadystatechange`事件，`xhr.upload.onprogress`和 `xhr.onprogress`事件也不会触发。
-
-## 如何获取上传、下载的进度
-
-在上传或者下载比较大的文件时，实时显示当前的上传、下载进度是很普遍的产品需求。
-我们可以通过`onprogress`事件来实时显示进度，默认情况下这个事件每50ms触发一次。需要注意的是，上传过程和下载过程触发的是不同对象的`onprogress`事件：
-
-- 上传触发的是`xhr.upload`对象的 `onprogress`事件
-- 下载触发的是`xhr`对象的`onprogress`事件
-
-```
-xhr.onprogress = updateProgress;
-xhr.upload.onprogress = updateProgress;
-function updateProgress(event) {
-    if (event.lengthComputable) {
-      var completedPercent = event.loaded / event.total;
-    }
- }
-```
-
-## 可以发送什么类型的数据
-
-> void send(data);
-
-`xhr.send(data)`的参数data可以是以下几种类型：
-
-- `ArrayBuffer`
-- `Blob`
-- `Document`
-- `DOMString`
-- `FormData`
-- `null`
-
-如果是 GET/HEAD请求，`send()`方法一般不传参或传 `null`。不过即使你真传入了参数，参数也最终被忽略，`xhr.send(data)`中的data会被置为 `null`.
-
-`xhr.send(data)`中data参数的数据类型会影响请求头部`content-type`的默认值：
-
-- 如果`data`是 `Document` 类型，同时也是`HTML Document`类型，则`content-type`默认值为`text/html;charset=UTF-8`;否则为`application/xml;charset=UTF-8`；
-- 如果`data`是 `DOMString` 类型，`content-type`默认值为`text/plain;charset=UTF-8`；
-- 如果`data`是 `FormData` 类型，`content-type`默认值为`multipart/form-data; boundary=[xxx]`
-- 如果`data`是其他类型，则不会设置`content-type`的默认值
-
-当然这些只是`content-type`的默认值，但如果用`xhr.setRequestHeader()`手动设置了中`content-type`的值，以上默认值就会被覆盖。
-
-另外需要注意的是，若在断网状态下调用`xhr.send(data)`方法，则会抛错：`Uncaught NetworkError: Failed to execute 'send' on 'XMLHttpRequest'`。一旦程序抛出错误，如果不 catch 就无法继续执行后面的代码，所以调用 `xhr.send(data)`方法时，应该用 `try-catch`捕捉错误。
-
-```
-try{
-    xhr.send(data)
-  }catch(e) {
-    //doSomething...
-  };
-```
-
-### `xhr.withCredentials`与 `CORS` 什么关系
-
-> 我们都知道，在发同域请求时，浏览器会将`cookie`自动加在`request header`中。但大家是否遇到过这样的场景：在发送跨域请求时，`cookie`并没有自动加在`request header`中。
-
-造成这个问题的原因是：在`CORS`标准中做了规定，默认情况下，浏览器在发送跨域请求时，不能发送任何认证信息（`credentials`）如"`cookies`"和"`HTTP authentication schemes`"。除非`xhr.withCredentials`为`true`（`xhr`对象有一个属性叫`withCredentials`，默认值为`false`）。
-
-所以根本原因是`cookies`也是一种认证信息，在跨域请求中，`client`端必须手动设置`xhr.withCredentials=true`，且`server`端也必须允许`request`能携带认证信息（即`response header`中包含`Access-Control-Allow-Credentials:true`），这样浏览器才会自动将`cookie`加在`request header`中。
-
-另外，要特别注意一点，一旦跨域`request`能够携带认证信息，`server`端一定不能将`Access-Control-Allow-Origin`设置为`*`，而必须设置为请求页面的域名。
-
-## `xhr`相关事件
-
-### 事件分类
-
-`xhr`相关事件有很多，有时记起来还挺容易混乱。但当我了解了具体代码实现后，就容易理清楚了。下面是`XMLHttpRequest`的部分实现代码：
-
-```
-interface XMLHttpRequestEventTarget : EventTarget {
-  // event handlers
-  attribute EventHandler onloadstart;
-  attribute EventHandler onprogress;
-  attribute EventHandler onabort;
-  attribute EventHandler onerror;
-  attribute EventHandler onload;
-  attribute EventHandler ontimeout;
-  attribute EventHandler onloadend;
-};
-
-interface XMLHttpRequestUpload : XMLHttpRequestEventTarget {
-
-};
-
-interface XMLHttpRequest : XMLHttpRequestEventTarget {
-  // event handler
-  attribute EventHandler onreadystatechange;
-  readonly attribute XMLHttpRequestUpload upload;
-};
-```
-
-从代码中我们可以看出：
-
-1. `XMLHttpRequestEventTarget`接口定义了7个事件：
-   - `onloadstart`
-   - `onprogress`
-   - `onabort`
-   - `ontimeout`
-   - `onerror`
-   - `onload`
-   - `onloadend`
-2. 每一个`XMLHttpRequest`里面都有一个`upload`属性，而`upload`是一个`XMLHttpRequestUpload`对象
-3. `XMLHttpRequest`和`XMLHttpRequestUpload`都继承了同一个`XMLHttpRequestEventTarget`接口，所以`xhr`和`xhr.upload`都有第一条列举的7个事件
-4. `onreadystatechange`是`XMLHttpRequest`独有的事件
-
-所以这么一看就很清晰了：
-`xhr`一共有8个相关事件：7个`XMLHttpRequestEventTarget`事件+1个独有的`onreadystatechange`事件；而`xhr.upload`只有7个`XMLHttpRequestEventTarget`事件。
-
-### 事件触发条件
-
-下面是我自己整理的一张`xhr`相关事件触发条件表，其中最需要注意的是 `onerror` 事件的触发条件。
-
-| 事件                 | 触发条件                                                     |
-| -------------------- | ------------------------------------------------------------ |
-| `onreadystatechange` | 每当`xhr.readyState`改变时触发；但`xhr.readyState`由非`0`值变为`0`时不触发。 |
-| `onloadstart`        | 调用`xhr.send()`方法后立即触发，若`xhr.send()`未被调用则不会触发此事件。 |
-| `onprogress`         | `xhr.upload.onprogress`在上传阶段(即`xhr.send()`之后，`xhr.readystate=2`之前)触发，每50ms触发一次；`xhr.onprogress`在下载阶段（即`xhr.readystate=3`时）触发，每50ms触发一次。 |
-| `onload`             | 当请求成功完成时触发，此时`xhr.readystate=4`                 |
-| `onloadend`          | 当请求结束（包括请求成功和请求失败）时触发                   |
-| `onabort`            | 当调用`xhr.abort()`后触发                                    |
-| `ontimeout`          | `xhr.timeout`不等于0，由请求开始即`onloadstart`开始算起，当到达`xhr.timeout`所设置时间请求还未结束即`onloadend`，则触发此事件。 |
-| `onerror`            | 在请求过程中，若发生`Network error`则会触发此事件（若发生`Network error`时，上传还没有结束，则会先触发`xhr.upload.onerror`，再触发`xhr.onerror`；若发生`Network error`时，上传已经结束，则只会触发`xhr.onerror`）。**注意**，只有发生了网络层级别的异常才会触发此事件，对于应用层级别的异常，如响应返回的`xhr.statusCode`是`4xx`时，并不属于`Network error`，所以不会触发`onerror`事件，而是会触发`onload`事件。 |
-
-
-
-### 事件触发顺序
-
-当请求一切正常时，相关的事件触发顺序如下：
-
-1. 触发`xhr.onreadystatechange`(之后每次`readyState`变化时，都会触发一次)
-2. 触发`xhr.onloadstart`
-   //上传阶段开始：
-3. 触发`xhr.upload.onloadstart`
-4. 触发`xhr.upload.onprogress`
-5. 触发`xhr.upload.onload`
-6. 触发`xhr.upload.onloadend`
-   //上传结束，下载阶段开始：
-7. 触发`xhr.onprogress`
-8. 触发`xhr.onload`
-9. 触发`xhr.onloadend`
-
-#### 发生`abort`/`timeout`/`error`异常的处理
-
-在请求的过程中，有可能发生 `abort`/`timeout`/`error`这3种异常。那么一旦发生这些异常，`xhr`后续会进行哪些处理呢？后续处理如下：
-
-1. 一旦发生`abort`或`timeout`或`error`异常，先立即中止当前请求
-2. 将 `readystate` 置为`4`，并触发 `xhr.onreadystatechange`事件
-3. 如果上传阶段还没有结束，则依次触发以下事件：
-   - `xhr.upload.onprogress`
-   - `xhr.upload.[onabort或ontimeout或onerror]`
-   - `xhr.upload.onloadend`
-4. 触发 `xhr.onprogress`事件
-5. 触发 `xhr.[onabort或ontimeout或onerror]`事件
-6. 触发`xhr.onloadend` 事件
-
-#### 在哪个`xhr`事件中注册成功回调？
-
-从上面介绍的事件中，可以知道若`xhr`请求成功，就会触发`xhr.onreadystatechange`和`xhr.onload`两个事件。 那么我们到底要将成功回调注册在哪个事件中呢？我倾向于 `xhr.onload`事件，因为`xhr.onreadystatechange`是每次`xhr.readyState`变化时都会触发，而不是`xhr.readyState=4`时才触发。
-
-```
-xhr.onload = function () {
-    //如果请求成功
-    if(xhr.status == 200){
-      //do successCallback
-    }
-  }
-```
-
-上面的示例代码是很常见的写法：先判断`http`状态码是否是`200`，如果是，则认为请求是成功的，接着执行成功回调。这样的判断是有坑儿的，比如当返回的`http`状态码不是`200`，而是`201`时，请求虽然也是成功的，但并没有执行成功回调逻辑。所以更靠谱的判断方法应该是：当`http`状态码为`2xx`或`304`时才认为成功。
-
-```
-  xhr.onload = function () {
-    //如果请求成功
-    if((xhr.status >= 200 && xhr.status < 300) || xhr.status == 304){
-      //do successCallback
-    }
-  }
-```
-
-http://www.ruanyifeng.com/blog/2012/09/xmlhttprequest_level_2.html
-
+[HTTP灵魂之问，巩固你的 HTTP 知识体系](https://juejin.im/post/5e76bd516fb9a07cce750746#heading-74)
