@@ -17,3 +17,30 @@
 - [正则表达式](https://github.com/moshang-xc/Blog/blob/master/article/normal/正则表达式.md)
 - [移动端适配](https://github.com/moshang-xc/Blog/blob/master/article/normal/移动端适配.md)
 
+## 代码片段
+
+**生成长度为10的随机字符串**
+```js
+Math.random().toString(36).substring(2);
+```
+
+**取整**
+```js
+let a = ~~2.33   ----> 2
+let b = 2.33 | 0   ----> 2
+let c = 2.33 >> 0   ----> 2
+```
+
+**金钱格式化**
+```js
+// 正则
+let test1 = '1234567890'
+let format = test1.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+// reduce
+function formatCash(str) {
+   return str.split('').reverse().reduce((prev, next, index) => {
+      return ((index % 3) ? next : (next + ',')) + prev
+   })
+}
+```
