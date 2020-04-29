@@ -31,6 +31,12 @@ let b = 2.33 | 0   ----> 2
 let c = 2.33 >> 0   ----> 2
 ```
 
+**单词转驼峰**
+```js
+let str = 'this is test string';
+str.replace(/\s(\w)/g, ($1, $2) => $2.toUpperCase()); // thisIsTestString
+```
+
 **金钱格式化**
 ```js
 // 正则
