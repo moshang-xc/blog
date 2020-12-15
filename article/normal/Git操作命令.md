@@ -79,3 +79,14 @@
 - 把文件添加到git仓库暂存区：`git add xx.xx` 
 - 比较版本差别：`git diff HEAD -- readme.txt` 
 - 输出文件内容：`cat readme.txt` 
+
+
+# 修改注释
+
+## 修改最后一次注释（最新的一次提交的注释）
+```
+git commit --amend
+```
+出现有注释的界面（你的注释应该显示在第一行）， 输入`i`进入修改模式，修改好注释后，按`Esc`键 退出编辑模式，输入`:wq`保存并退出。
+运行`git log --oneline`查看log是否修改成功
+
