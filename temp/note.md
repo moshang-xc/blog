@@ -2,7 +2,7 @@
 
 ![原型和原型链](./img/prototype5.png)
 
-> \_\_ptoto\__: 原型对象链或者隐式原型，每个对象都有`__proto__`属性，指向了创建该对象的构造函数的原型`__proto__`将对象连接起来组成了原型链。
+> \_\_ptoto\__: 原型对象链或者隐式原型，每个对象都有`__proto__`属性，指向了创建该对象的构造函数的原型，`__proto__`将对象连接起来组成了原型链。
 
 - 实例.\_\_proto__ === 原型
 - 原型.constructor === 构造函数
@@ -129,10 +129,6 @@ function new(func){
     let Constructor = [].shift.call(arguments);
     target.__proto__ = Constructor.prototype;
     var res = Constructor.apply(target, arguments);
-
-    if(typeof(res) == "object"){
-        return res;
-    }
     
     return typeof res === 'object' ? res : target;
 }

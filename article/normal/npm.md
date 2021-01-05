@@ -53,3 +53,4 @@ npm version minor // 1.2.1
 # 主版本号 + 1
 npm version major // 2.1.1
 ```
+

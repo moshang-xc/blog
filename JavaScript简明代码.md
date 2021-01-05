@@ -17,7 +17,7 @@
 
 糟糕示例：
 
-```
+```js
 let daysSLV = 10;
 let y = new Date().getFullYear();
 
@@ -29,7 +29,7 @@ if (user.age > 30) {
 
 良好示例：
 
-```
+```js
 const MAX_AGE = 30;
 let daysSinceLastVisit = 10;
 let currentYear = new Date().getFullYear();
@@ -43,7 +43,7 @@ const isUserOlderThanAllowed = user.age > MAX_AGE;
 
 糟糕示例：
 
-```
+```js
 const users = ["John", "Marco", "Peter"];
 users.forEach(u => {
   doSomething();
@@ -60,7 +60,7 @@ users.forEach(u => {
 
 良好示例：
 
-```
+```js
 const users = ["John", "Marco", "Peter"];
 users.forEach(user => {
   doSomething();
@@ -77,7 +77,7 @@ users.forEach(user => {
 
 糟糕示例：
 
-```
+```js
 const user = {
   userName: "John",
   userSurname: "Doe",
@@ -92,7 +92,7 @@ user.userName;
 
 良好示例：
 
-```
+```js
 const user = {
   name: "John",
   surname: "Doe",
