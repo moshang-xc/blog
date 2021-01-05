@@ -14,7 +14,7 @@
 - [icomoon字体图标导入与使用](https://github.com/moshang-xc/Blog/issues/11)
 - [Http状态码/缓存/Cookie](https://github.com/moshang-xc/Blog/issues/7)
 - [浏览器渲染原理及性能优化](https://github.com/moshang-xc/Blog/issues/3)
-- [正则表达式](https://github.com/moshang-xc/Blog/blob/master/article/normal/正则表达式.md)
+- [正则那些事](https://github.com/moshang-xc/Blog/blob/master/article/normal/正则表达式.md)
 - [移动端适配](https://github.com/moshang-xc/Blog/blob/master/article/normal/移动端适配.md)
 
 ## 代码片段
