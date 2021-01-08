@@ -1,4 +1,57 @@
-# webpack
+# Webpack
+
+## Hot Module Replacement 热更新
+
+热更新：不刷新浏览器且保持应用之前的状态
+
+检测文件更新，然后进行打包，写入内存，同时将hash告诉客户端，客户端拿到hash后发送给webpack，把控制权交回给webpack，webpack根据hash判断是否更新，要更新将hash发回服务端请求更新文件的信息，服务端返回更新文件的模块信息，客户端再通过jsonp去请求对应的模块代码，拿到模块后进行热更新，如果热更新失败直接刷新浏览器。
+
+## loader
+
+对内容进行处理转换，返回转换后的结果。类似前置的工作，将内容翻译成机器可以读得懂的语言吧。
+
+可配置`enforce` 强制执行 `loader` 的作用顺序，`pre` 代表在所有正常 loader 之前执行，`post` 是所有 loader 之后执行
+
+### url-loader
+
+与 file-loader 类似，区别是用户可以设置一个阈值，大于阈值会交给 file-loader 处理，小于阈值时返回文件 base64 形式编码
+
+- vue-loader
+- sass-loade，postcss-loader，css-loader，style-loader
+- babel-loader
+
+## plugin
+
+扩展webpack的功能，改变输出的结果。相当于二次处理。
+
+- ignore-plugin
+- html/web-webpack-plugin
+- mini-css-extract-plugin
+- clean-webpack-plugin
+- webpack-bundle-analyzer：打包后的文件分析
+- speed-measure-webpack-plugin: 量化打包速度，测量各插件和loader花费的时间
+
+## 工作流程
+
+- 初始化：读取配置初始化参数，加载plugin等
+- 编译：从入口文件出发，针对每个 Module 串行调用对应的 Loader 去翻译文件的内容，再找到该 Module 依赖的 Module，递归地进行编译处理
+- 输出：将编译后的 Module 组合成 Chunk，将 Chunk 转换成文件，输出到文件系统中
+
+## 打包速度提升
+
+- speed-measure-webpack-plugin量化打包时间，逐个优化
+- HardSourceWebpackPlugin为模块提供中间缓存
+- **缩小打包作用域**
+  - exclude/include (确定 loader 规则范围)
+  - resolve.modules 指明第三方模块的绝对路径
+  - resolve.extensions 尽可能减少后缀尝试的可能性
+  - resolve.alias 合理使用别名
+  - noParse 对完全不需要解析的库进行忽略
+- 缓存：babel-loader开启缓存`cacheDirectory`或使用**cache-loader**
+- 多进程：happypack/thread-loader
+- DLL：dllPlugin进行分包
+
+
 
 ## 插件
 
@@ -280,3 +333,4 @@ if (dev) {
 `contenthash` 你可以简单理解为是 `moduleId` + `content` 所生成的 `hash`。
 
 # 
+
