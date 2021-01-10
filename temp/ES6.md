@@ -42,7 +42,7 @@ JavaScript 函数有两个内部方法：`[[Call]]` 和 `[[Construct]]`。
 # Set
 
 ```js
-let set = new Set(arg); // srg可为空或arg是具有itarable接口的数据结构
+let set = new Set(arg); // arg可为空或arg是具有itarable接口的数据结构
 set.size; // 尺寸
 set.add(xxx); // 添加某个值，返回Set结构本身。
 set.delete(xxx); // 删除某个元素，返回一个布尔值，表示删除是否成功。
@@ -86,7 +86,7 @@ map.clear();
 
 # 迭代器Iterator与for of
 
-ES6 规定，默认的 Iterator 接口部署在数据结构的`Symbol.iterator`属性，或者说，一个数据结构只要具有`Symbol.iterator`属性，就可以认为是“可遍历的”（iterable）。
+ES6 规定，默认的 Iterator 接口部署在数据结构的`Symbol.iterator`属性上，或者说，一个数据结构只要具有`Symbol.iterator`属性，就可以认为是“可遍历的”（iterable）。
 
 ```js
 const obj = {
@@ -185,12 +185,6 @@ for(let val of obj2){
 }
 ```
 
-
-
-# Promise
-
-过
-
 # Generator
 
 调用Generator函数后，该函数并不执行（可以理解为暂缓执行函数），返回的也不是该函数的运行结果。Generator函数返回遍历器对象，只有当调用`next()`方法才会遍历下一个内部状态。
@@ -270,88 +264,3 @@ for(let val of foo()){
 }
 ```
 
-# async, await
-
-`asybc`函数返回一个Promise对象。
-
-`async`函数内部`return`语句返回的值，会成为`then`方法回调函数的参数。
-
-```js
-async function f(){
-    return 'hello world'
-}
-
-f().then(console.log) // hello world
-```
-
-> `async`函数内部抛出错误，会导致返回的 Promise 对象变为`reject`状态。抛出的错误对象会被`catch`方法回调函数接收到。
-
-## await
-
-正常情况下，`await`命令后面是一个 Promise 对象，返回该对象resolve的结果。如果不是 Promise 对象，就直接返回对应的值。
-
-```js
-async function f() {
-  // 等同于
-  // return 123;
-  return await 123;
-}
-
-f().then(v => console.log(v)) // 123
-
-async function f1() {
-  	let s = await Promise.resolve(123);
-    console.log(s); // 123
-    return s;
-}
-
-f1().then(v => console.log(v)) // 123
-```
-
-`await`命令后面的 Promise 对象如果变为`reject`状态，则`reject`的参数会被`catch`方法的回调函数接收到。
-
-如果`await`后面的异步操作出错，那么等同于`async`函数返回的 Promise 对象被`reject`。
-
-任何一个`await`语句后面的 Promise 对象变为`reject`状态，那么整个`async`函数都会中断执行。
-
-```js
-async function f(){
-    await Promise.reject('出错了');
-    return await Promise.resolve('对了'); // 不会执行
-}
-
-f().then(console.log).catch(console.log) // 出错了
-```
-
-> `await`命令只能用在`async`函数之中，如果用在普通函数，就会报错。
-
-# class
-
-子类没有自己的`this`对象，而是继承父类的this对象，然后对其进行加工。如果不调用super方法，子类就得不到this对象。
-
-```js
-class A {
-    
-}
-
-class B extends A {
-    
-}
-
-B.__proto__ === A // true
-B.prototype.__proto__ === A.prototype // true
-```
-
-```js
-function F(){
-    
-}
-
-let f = new F();
-
-f.__proto__ === F.prototype
-f.constructor === F === F.prototype.constructor
-F.prototype.__proto__ === Object.prototype
-```
-
-# defineProperty，proxy

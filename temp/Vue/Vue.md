@@ -57,7 +57,7 @@ export default function hocComponent(wrappedComponent){
 
 ## 1. computed 和 watch 的区别和运用的场景？
 
-**computed：** 是计算属性，依赖其它属性值，并且 computed 的值有缓存，只有它依赖的属性值发生改变，下一次获取 computed 的值时才会重新计算 computed  的值；
+**computed：** 是计算属性，依赖其它属性值，并且 computed 的值有缓存，只有它依赖的属性值发生改变，下一次获取 computed 的值时才会重新计算 computed  的值；计算属性的值是用到的时候才去计算。
 
 computed对于的watcher.dirty记录是否需要重新计算
 
@@ -70,9 +70,9 @@ computed对于的watcher.dirty记录是否需要重新计算
 
 ## 2. Vue监听数据变化原理
 
-重写数组的原型对象`__proto__`，添加`dep.notify()`。
+重写数组实例的原型对象`__proto__`，添加`dep.notify()`。
 
-对如下方法进行重写： push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'
+对如下方法进行重写： 'push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'
 
 **Vue实现对数组的监听的处理：**见源码
 
@@ -162,7 +162,7 @@ methodsToPatch.forEach(function (method) {
 
 通常与vue-router一起使用
 
-先mounted在actived，mounted就第一次唤醒的时候执行一次，唤醒后会再次执行actived
+第一次激活时 先mounted再activated，mounted就第一次唤醒的时候执行一次，唤醒后会再次执行activated
 
 ## 6. v-model
 
@@ -321,11 +321,9 @@ var app = new Vue({
 - Dep：依赖收集器采用 发布-订阅 设计模式，用来收集订阅者 Watcher，对监听器 Observer 和 订阅者 Watcher 进行统一管理
 - 但数据发生改变时，setter触发dep.notify() -> watcher.update()触发compile中绑定的回调
 
-https://juejin.im/post/5d421bcf6fb9a06af23853f1
-
 ## 11.  diff 和 pach算法
 
-在右key且新旧dom的子节点都为多个的时候核心算法才生效。
+在有key且新旧dom的子节点都为多个的时候核心算法才发挥作用。
 
 核心算法：新旧dom树分别有首尾两个指针进行节点对比复用。
 
@@ -356,8 +354,6 @@ function sameVnode(a, b) {
 说简单点就是为了复用，且不出问题。可以说很多简单场景下不用key，效率会更高。
 
 官网推荐推荐的使用key，应该理解为“使用唯一id作为key”。因为index作为key，和不带key的效果是一样的。index作为key时，每个列表项的index在变更前后也是一样的，都是直接判断为sameVnode然后复用。
-
-## 
 
 1. key的作用是尽可能的复用元素，在新旧的节点之间保存映射关系，以便能对旧的dom进行复用。
 2. 保证组件的状态正确，比如对于没有通过data中属性控制的文本标签，会不出现状态错误的情况。
@@ -395,8 +391,6 @@ let vm = new Vue({
       });
 </script>
 ```
-
-
 
 ## 13. nextTrick
 
@@ -487,14 +481,6 @@ vue3.0 的改变是全面的，上面只涉及到主要的 3 个方面，还有�
 - 支持自定义渲染器，从而使得 weex 可以通过自定义渲染器的方式来扩展，而不是直接 fork 源码来改的方式。
 - 支持 Fragment（多个根节点）和 Protal（在 dom 其他部分渲染组建内容）组件，针对一些特殊的场景做了处理。
 - 基于 treeshaking 优化，提供了更多的内置功能。
-
-
-
-# 19. proxy
-
-
-
-
 
 # vue-router
 

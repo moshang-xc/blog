@@ -801,11 +801,11 @@ async function name([param[, param[, ... param]]]) { statements }
 
 - 不是promise对象
 
-如果不是 promise , await会阻塞后面的代码，先执行async外面的同步代码，同步代码执行完，再回到async内部，把这个非promise的东西，作为 await表达式的结果。
+如果不是 promise , await 会暂停async后面的代码，先执行async外面的同步代码，同步代码执行完，再回到async内部，把这个非promise的东西，作为 await表达式的结果。
 
 - 是promise对象
 
-如果它等到的是一个 promise 对象，await 也会暂停async后面的代码，先执行async外面的同步代码，等着 Promise 对象 fulfilled，然后把 resolve 的参数作为 await 表达式的运算结果，如果Promise对象rejected，则将错误抛出。
+如果它等到的是一个 promise 对象，await 也会暂停async后面的代码，先执行async外面的同步代码，等着 Promise 对象 fulfilled，然后把 resolve 的参数作为 await 表达式的运算结果，**如果Promise对象rejected，则将错误抛出**。
 
 **例子**：
 
@@ -1055,7 +1055,6 @@ async function async1() {
 - setImmediate (Node独有)
 - requestAnimationFrame (浏览器独有)
 - I/O
-- UI rendering (浏览器独有)
 
 ### 微任务
 
@@ -1074,7 +1073,7 @@ async function async1() {
 
 3. 从微队列microtask queue中取出位于队首的回调任务，放入调用栈Stack中执行，执行完后microtask queue长度减1；
 
-4. 继续取出位于队首的任务，放入调用栈Stack中执行，以此类推，直到直到把microtask queue中的所有任务都执行完毕。**注意，如果在执行microtask的过程中，又产生了microtask，那么会加入到队列的末尾，也会在这个周期被调用执行**；
+4. 继续取出为队列中位于队首的任务，放入调用栈Stack中执行，以此类推，直到直到把microtask queue中的所有任务都执行完毕。**注意，如果在执行microtask的过程中，又产生了microtask，那么会加入到队列的末尾，也会在这个周期被调用执行**；
 
 5. microtask queue中的所有任务都执行完毕，此时microtask queue为空队列，调用栈Stack也为空；
 
@@ -1513,3 +1512,4 @@ module.exports = Promise;
 ## 10. Async/Await 如何通过同步的方式实现异步
 
 未完待续
+

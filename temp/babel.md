@@ -80,7 +80,6 @@ Babel的配置文件，用于配置`presets`和`plugins`
 {
   "plugins": ["pluginA", ["pluginA"], ["pluginA", {}]]
 }
-Copy
 ```
 
 要指定参数，请传递一个以参数名作为键（key）的对象。
@@ -97,7 +96,6 @@ Copy
     ]
   ]
 }
-Copy
 ```
 
 > preset 的设置参数的工作原理完全相同。
