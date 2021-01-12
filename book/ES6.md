@@ -1,4 +1,720 @@
-## 1. Es6和Es5的继承有什么区别
+# let, const
+
+let 和 const 声明的变量不会被提升到作用域顶部，如果在声明之前访问这些变量，会导致报错：
+
+```
+console.log(typeof value); // Uncaught ReferenceError: value is not defined
+let value = 1;
+```
+
+这是因为 JavaScript 引擎在扫描代码发现变量声明时，要么将它们提升到作用域顶部(遇到 var 声明)，要么将声明放在 TDZ 中(遇到 let 和 const 声明)。访问 TDZ 中的变量会触发运行时错误。只有执行过变量声明语句后，变量才会从 TDZ 中移出，然后方可访问。
+
+```
+var value = "global";
+
+(function() {
+    console.log(value);
+    let value = 'local';
+}());
+```
+
+结果并不会打印 "global"，而是报错 `Uncaught ReferenceError: value is not defined`，就是因为 TDZ 的缘故。
+
+对应循环中的`let`会在 `for (let i = 0; i < 3; i++)` 中，即圆括号之内建立一个隐藏的作用域
+
+# 箭头函数
+
+- 没有`this`，不能用`call`、`apply`、`bind`这些方法改变this的指向。
+- 没有`arguments`
+- 不能通过`new`关键字调用，没有`new.target`
+- 没有原型`prototype`，没有`super`
+
+## tip:
+
+JavaScript 函数有两个内部方法：`[[Call]]` 和 `[[Construct]]`。
+
+当通过` new `调用函数时，执行` [[Construct]] `方法，创建一个实例对象，然后再执行函数体，将 this 绑定到实例上。
+
+当直接调用的时候，执行` [[Call]] `方法，直接执行函数体。
+
+箭头函数并没有` [[Construct]]` 方法，不能被用作构造函数，如果通过 new 的方式调用，会报错。
+
+# Set, Map
+
+Set 和 Map 主要的应用场景在于 **数据重组** 和 **数据储存**
+
+Set 是一种叫做**集合**的数据结构，Map 是一种叫做**字典**的数据结构
+
+## 1. 集合（Set）
+
+ES6 新增的一种新的数据结构，类似于数组，但成员是唯一且无序的，没有重复的值。
+
+**Set 本身是一种构造函数，用来生成 Set 数据结构。**
+
+```js
+new Set([iterable])
+```
+
+举个例子：
+
+```js
+const s = new Set()
+[1, 2, 3, 4, 3, 2, 1].forEach(x => s.add(x))
+
+for (let i of s) {
+    console.log(i)	// 1 2 3 4
+}
+
+// 去重数组的重复对象
+let arr = [1, 2, 3, 2, 1, 1]
+[... new Set(arr)]	// [1, 2, 3]
+```
+
+Set 对象允许你储存任何类型的唯一值，无论是原始值或者是对象引用。
+
+**向 Set 加入值的时候，不会发生类型转换，所以`5`和`"5"`是两个不同的值**。Set 内部判断两个值是否不同，使用的算法叫做“Same-value-zero equality”，它类似于**精确相等**运算符（`===`），主要的区别是**`NaN`等于自身，而精确相等运算符认为`NaN`不等于自身。**
+
+```js
+let set = new Set();
+let a = NaN;
+let b = NaN;
+set.add(a);
+set.add(b);
+set // Set {NaN}
+
+let set1 = new Set()
+set1.add(5)
+set1.add('5')
+console.log([...set1])	// [5, "5"]
+```
+
+- Set 实例属性
+
+  - constructor： 构造函数
+
+  - size：元素数量
+
+    ```js
+    let set = new Set([1, 2, 3, 2, 1])
+    
+    console.log(set.length)	// undefined
+    console.log(set.size)	// 3
+    ```
+
+- Set 实例方法
+
+  - 操作方法
+
+    - add(value)：新增，相当于 array里的push
+
+    - delete(value)：存在即删除集合中value
+
+    - has(value)：判断集合中是否存在 value
+
+    - clear()：清空集合
+
+      ------
+
+      ```js
+      let set = new Set()
+      set.add(1).add(2).add(1)
+      
+      set.has(1)	// true
+      set.has(3)	// false
+      set.delete(1)	
+      set.has(1)	// false
+      ```
+
+      `Array.from` 方法可以将 Set 结构转为数组
+
+      ```js
+      const items = new Set([1, 2, 3, 2])
+      const array = Array.from(items)
+      console.log(array)	// [1, 2, 3]
+      // 或
+      const arr = [...items]
+      console.log(arr)	// [1, 2, 3]
+      ```
+
+  - 遍历方法（遍历顺序为插入顺序）
+
+    - keys()：返回一个包含集合中所有键的迭代器
+
+    - values()：返回一个包含集合中所有值得迭代器
+
+    - entries()：返回一个包含Set对象中所有元素得键值对迭代器
+
+    - forEach(callbackFn, thisArg)：用于对集合成员执行callbackFn操作，如果提供了 thisArg 参数，回调中的this会是这个参数，**没有返回值**
+
+      ```js
+      let set = new Set([1, 2, 3])
+      console.log(set.keys())	// SetIterator {1, 2, 3}
+      console.log(set.values())	// SetIterator {1, 2, 3}
+      console.log(set.entries())	// SetIterator {1, 2, 3}
+      
+      for (let item of set.keys()) {
+        console.log(item);
+      }	// 1	2	 3
+      for (let item of set.entries()) {
+        console.log(item);
+      }	// [1, 1]	[2, 2]	[3, 3]
+      
+      set.forEach((value, key) => {
+          console.log(key + ' : ' + value)
+      })	// 1 : 1	2 : 2	3 : 3
+      console.log([...set])	// [1, 2, 3]
+      ```
+
+      Set 可默认遍历，默认迭代器生成函数是 values() 方法
+
+      ```js
+      Set.prototype[Symbol.iterator] === Set.prototype.values	// true
+      ```
+
+      所以， Set可以使用 map、filter 方法
+
+      ```js
+      let set = new Set([1, 2, 3])
+      set = new Set([...set].map(item => item * 2))
+      console.log([...set])	// [2, 4, 6]
+      
+      set = new Set([...set].filter(item => (item >= 4)))
+      console.log([...set])	//[4, 6]
+      ```
+
+      因此，Set 很容易实现交集（Intersect）、并集（Union）、差集（Difference）
+
+      ```js
+      let set1 = new Set([1, 2, 3])
+      let set2 = new Set([4, 3, 2])
+      
+      let intersect = new Set([...set1].filter(value => set2.has(value)))
+      let union = new Set([...set1, ...set2])
+      let difference = new Set([...set1].filter(value => !set2.has(value)))
+      
+      console.log(intersect)	// Set {2, 3}
+      console.log(union)		// Set {1, 2, 3, 4}
+      console.log(difference)	// Set {1}
+      ```
+
+## 2. WeakSet
+
+WeakSet 对象允许你将**弱引用对象**储存在一个集合中
+
+WeakSet 与 Set 的区别：
+
+- WeakSet 只能储存对象引用，不能存放值，而 Set 对象都可以
+- WeakSet 对象中储存的对象值都是被弱引用的，即垃圾回收机制不考虑 WeakSet 对该对象的引用，如果没有其他的变量或属性引用这个对象值，则这个对象将会被垃圾回收掉（不考虑该对象还存在于 WeakSet 中），所以，WeakSet 对象里有多少个成员元素，取决于垃圾回收机制有没有运行，运行前后成员个数可能不一致，遍历结束之后，有的成员可能取不到了（被垃圾回收了），WeakSet 对象是无法被遍历的（ES6 规定 WeakSet 不可遍历），也没有办法拿到它包含的所有元素
+
+属性：
+
+- constructor：构造函数，任何一个具有 Iterable 接口的对象，都可以作参数
+
+  ```
+  const arr = [[1, 2], [3, 4]]
+  const weakset = new WeakSet(arr)
+  console.log(weakset)
+  ```
+
+[![2019-03-08 9 24 34](https://user-images.githubusercontent.com/19721451/54000884-27290900-4184-11e9-92f0-4d19ac6d080b.png)](https://user-images.githubusercontent.com/19721451/54000884-27290900-4184-11e9-92f0-4d19ac6d080b.png)
+
+方法：
+
+- add(value)：在WeakSet 对象中添加一个元素value
+- has(value)：判断 WeakSet 对象中是否包含value
+- delete(value)：删除元素 value
+- clear()：清空所有元素，**注意该方法已废弃**
+
+```js
+var ws = new WeakSet()
+var obj = {}
+var foo = {}
+
+ws.add(window)
+ws.add(obj)
+
+ws.has(window)	// true
+ws.has(foo)	// false
+
+ws.delete(window)	// true
+ws.has(window)	// false
+```
+
+## 3. 字典（Map）
+
+集合 与 字典 的区别：
+
+- 共同点：集合、字典 可以储存不重复的值
+- 不同点：集合 是以 [value, value]的形式储存元素，字典 是以 [key, value] 的形式储存
+
+```js
+const m = new Map()
+const o = {p: 'haha'}
+m.set(o, 'content')
+m.get(o)	// content
+
+m.has(o)	// true
+m.delete(o)	// true
+m.has(o)	// false
+```
+
+**任何具有 Iterator 接口、且每个成员都是一个双元素的数组的数据结构**都可以当作`Map`构造函数的参数，例如：
+
+```js
+const set = new Set([
+  ['foo', 1],
+  ['bar', 2]
+]);
+const m1 = new Map(set);
+m1.get('foo') // 1
+
+const m2 = new Map([['baz', 3]]);
+const m3 = new Map(m2);
+m3.get('baz') // 3
+```
+
+如果读取一个未知的键，则返回`undefined`。
+
+```js
+new Map().get('asfddfsasadf')
+// undefined
+```
+
+注意，只有对同一个对象的引用，Map 结构才将其视为同一个键。这一点要非常小心。
+
+```js
+const map = new Map();
+
+map.set(['a'], 555);
+map.get(['a']) // undefined
+```
+
+上面代码的`set`和`get`方法，表面是针对同一个键，但实际上这是两个值，内存地址是不一样的，因此`get`方法无法读取该键，返回`undefined`。
+
+由上可知，Map 的键实际上是跟内存地址绑定的，只要内存地址不一样，就视为两个键。这就解决了同名属性碰撞（clash）的问题，我们扩展别人的库的时候，如果使用对象作为键名，就不用担心自己的属性与原作者的属性同名。
+
+如果 Map 的键是一个简单类型的值（数字、字符串、布尔值），则只要两个值严格相等，Map 将其视为一个键，比如`0`和`-0`就是一个键，布尔值`true`和字符串`true`则是两个不同的键。另外，`undefined`和`null`也是两个不同的键。虽然`NaN`不严格相等于自身，但 Map 将其视为同一个键。
+
+```js
+let map = new Map();
+
+map.set(-0, 123);
+map.get(+0) // 123
+
+map.set(true, 1);
+map.set('true', 2);
+map.get(true) // 1
+
+map.set(undefined, 3);
+map.set(null, 4);
+map.get(undefined) // 3
+
+map.set(NaN, 123);
+map.get(NaN) // 123
+```
+
+Map 的属性及方法
+
+属性：
+
+- constructor：构造函数
+
+- size：返回字典中所包含的元素个数
+
+  ```js
+  const map = new Map([
+    ['name', 'An'],
+    ['des', 'JS']
+  ]);
+  
+  map.size // 2
+  ```
+
+操作方法：
+
+- set(key, value)：向字典中添加新元素
+- get(key)：通过键查找特定的数值并返回
+- has(key)：判断字典中是否存在键key
+- delete(key)：通过键 key 从字典中移除对应的数据
+- clear()：将这个字典中的所有元素删除
+
+遍历方法
+
+- Keys()：将字典中包含的所有键名以迭代器形式返回
+- values()：将字典中包含的所有数值以迭代器形式返回
+- entries()：返回所有成员的迭代器
+- forEach()：遍历字典的所有成员
+
+```
+const map = new Map([
+            ['name', 'An'],
+            ['des', 'JS']
+        ]);
+console.log(map.entries())	// MapIterator {"name" => "An", "des" => "JS"}
+console.log(map.keys()) // MapIterator {"name", "des"}
+```
+
+Map 结构的默认遍历器接口（`Symbol.iterator`属性），就是`entries`方法。
+
+```
+map[Symbol.iterator] === map.entries
+// true
+```
+
+Map 结构转为数组结构，比较快速的方法是使用扩展运算符（`...`）。
+
+对于 forEach ，看一个例子
+
+```
+const reporter = {
+  report: function(key, value) {
+    console.log("Key: %s, Value: %s", key, value);
+  }
+};
+
+let map = new Map([
+    ['name', 'An'],
+    ['des', 'JS']
+])
+map.forEach(function(value, key, map) {
+  this.report(key, value);
+}, reporter);
+// Key: name, Value: An
+// Key: des, Value: JS
+```
+
+在这个例子中， forEach 方法的回调函数的 this，就指向 reporter
+
+**与其他数据结构的相互转换**
+
+1. Map 转 Array
+
+   ```
+   const map = new Map([[1, 1], [2, 2], [3, 3]])
+   console.log([...map])	// [[1, 1], [2, 2], [3, 3]]
+   ```
+
+2. Array 转 Map
+
+   ```
+   const map = new Map([[1, 1], [2, 2], [3, 3]])
+   console.log(map)	// Map {1 => 1, 2 => 2, 3 => 3}
+   ```
+
+3. Map 转 Object
+
+   因为 Object 的键名都为字符串，而Map 的键名为对象，所以转换的时候会把非字符串键名转换为字符串键名。
+
+   ```
+   function mapToObj(map) {
+       let obj = Object.create(null)
+       for (let [key, value] of map) {
+           obj[key] = value
+       }
+       return obj
+   }
+   const map = new Map().set('name', 'An').set('des', 'JS')
+   mapToObj(map)  // {name: "An", des: "JS"}
+   ```
+
+4. Object 转 Map
+
+   ```
+   function objToMap(obj) {
+       let map = new Map()
+       for (let key of Object.keys(obj)) {
+           map.set(key, obj[key])
+       }
+       return map
+   }
+   
+   objToMap({'name': 'An', 'des': 'JS'}) // Map {"name" => "An", "des" => "JS"}
+   ```
+
+5. Map 转 JSON
+
+   ```
+   function mapToJson(map) {
+       return JSON.stringify([...map])
+   }
+   
+   let map = new Map().set('name', 'An').set('des', 'JS')
+   mapToJson(map)	// [["name","An"],["des","JS"]]
+   ```
+
+6. JSON 转 Map
+
+   ```
+   function jsonToStrMap(jsonStr) {
+     return objToMap(JSON.parse(jsonStr));
+   }
+   
+   jsonToStrMap('{"name": "An", "des": "JS"}') // Map {"name" => "An", "des" => "JS"}
+   ```
+
+## 4. WeakMap
+
+WeakMap 对象是一组键值对的集合，其中的**键是弱引用对象，而值可以是任意**。
+
+**注意，WeakMap 弱引用的只是键名，而不是键值。键值依然是正常引用。**
+
+WeakMap 中，每个键对自己所引用对象的引用都是弱引用，在没有其他引用和该键引用同一对象，这个对象将会被垃圾回收（相应的key则变成无效的），所以，WeakMap 的 key 是不可枚举的。
+
+属性：
+
+- constructor：构造函数
+
+方法：
+
+- has(key)：判断是否有 key 关联对象
+- get(key)：返回key关联对象（没有则则返回 undefined）
+- set(key)：设置一组key关联对象
+- delete(key)：移除 key 的关联对象
+
+```
+let myElement = document.getElementById('logo');
+let myWeakmap = new WeakMap();
+
+myWeakmap.set(myElement, {timesClicked: 0});
+
+myElement.addEventListener('click', function() {
+  let logoData = myWeakmap.get(myElement);
+  logoData.timesClicked++;
+}, false);
+```
+
+## 5. 总结
+
+- Set
+  - 成员唯一、无序且不重复
+  - [value, value]，键值与键名是一致的（或者说只有键值，没有键名）
+  - 可以遍历，方法有：add、delete、has
+- WeakSet
+  - 成员都是对象
+  - 成员都是弱引用，可以被垃圾回收机制回收，可以用来保存DOM节点，不容易造成内存泄漏
+  - 不能遍历，方法有add、delete、has
+- Map
+  - 本质上是键值对的集合，类似集合
+  - 可以遍历，方法很多可以跟各种数据格式转换
+- WeakMap
+  - 只接受对象作为键名（null除外），不接受其他类型的值作为键名
+  - 键名是弱引用，键值可以是任意的，键名所指向的对象可以被垃圾回收，此时键名是无效的
+  - 不能遍历，方法有get、set、has、delete
+
+## 6. 扩展：Object与Set、Map
+
+1. Object 与 Set
+
+   ```
+   // Object
+   const properties1 = {
+       'width': 1,
+       'height': 1
+   }
+   console.log(properties1['width']? true: false) // true
+   
+   // Set
+   const properties2 = new Set()
+   properties2.add('width')
+   properties2.add('height')
+   console.log(properties2.has('width')) // true
+   ```
+
+2. Object 与 Map
+
+JS 中的对象（Object），本质上是键值对的集合（hash 结构）
+
+```
+const data = {};
+const element = document.getElementsByClassName('App');
+
+data[element] = 'metadata';
+console.log(data['[object HTMLCollection]']) // "metadata"
+```
+
+但当以一个DOM节点作为对象 data 的键，对象会被自动转化为字符串[Object HTMLCollection]，所以说，Object 结构提供了 **字符串-值** 对应，Map则提供了 **值-值** 的对应
+
+# 迭代器Iterator与for of
+
+ES6 规定，默认的 Iterator 接口部署在数据结构的`Symbol.iterator`属性上，或者说，一个数据结构只要具有`Symbol.iterator`属性，就可以认为是“可遍历的”（iterable）。
+
+```js
+const obj = {
+  [Symbol.iterator] : function () {
+    return {
+      next: function () {
+        return {
+          value: 1,
+          done: true
+        };
+      }
+    };
+  }
+};
+```
+
+每一次调用`next`方法，都会返回一个包含`value`和`done`两个属性的对象。其中，`value`属性是当前成员的值，`done`属性是一个布尔值，表示遍历是否结束。
+
+> obj[Symbol.iterator] is a function.
+
+for of 遍历的其实是对象的Symbol.iterator属性，以下数据结构默认部署了Symbol.iterator属性：
+
+- 数组
+- Set
+- Map
+- 类数组，如arguments, DOM NodeList
+- Generator对象
+- 字符串
+
+ES6 为数组、Map、Set 集合内建了以下三种迭代器：
+
+1. entries() 返回一个遍历器对象，用来遍历[键名, 键值]组成的数组。对于数组，键名就是索引值。
+2. keys() 返回一个遍历器对象，用来遍历所有的键名。
+3. values() 返回一个遍历器对象，用来遍历所有的键值。
+
+> 每个集合类型都有一个默认的迭代器，在 for-of 循环中，如果没有显式指定则使用默认的迭代器。数组和 Set 集合的默认迭代器是 values() 方法，Map 集合的默认迭代器是 entries() 方法。
+
+```js
+// for of 实现
+function forof(obj, cb){
+	if(typeof obj[Sysbol.iterator] !== 'function'){
+        throw new TypeError(obj + " is not iterable");
+    }
+    
+    if(typeof cb !== 'function'){
+        throw new TypeError('cb must be callable');
+    }
+    
+    let iterable = Obj[Symbol.iterator]();
+    let result = iterable.next();
+    while(!result.done){
+        cb(result.value);
+        result = result.next();
+    }
+}
+```
+
+**注意，一旦`next`方法的返回对象的`done`属性为`true`，`for...of`循环就会中止，且不包含该返回对象**
+
+```js
+// 示例1：
+function createIterator1(arr){
+    let i = 0;
+    return {
+        next(){
+            return {
+                value: arr[i++],
+                done: i === arr.length
+            }
+        }
+    }
+}
+let obj1 = {
+    [Symbol.iterator]: ()=> createIterator1([1,2,3])
+}
+for(let val of obj1){
+    console.log(val); // 1 2
+}
+// 示例2：
+function createIterator2(arr){
+    let i = 0;
+    return {
+        next(){
+            return {
+                value: arr[i],
+                done: i++ === arr.length
+            }
+        }
+    }
+}
+let obj2 = {
+    [Symbol.iterator]: ()=> createIterator2([1,2,3])
+}
+for(let val of obj2){
+    console.log(val); // 1 2 3
+}
+```
+
+# Generator
+
+调用Generator函数后，该函数并不执行（可以理解为暂缓执行函数），返回的也不是该函数的运行结果。Generator函数返回遍历器对象，只有当调用`next()`方法才会遍历下一个内部状态。
+
+
+## yield(产出)
+
+只能存在于Generato函数中，不然会报错。yield表达式后面的表达式，只有当调用next()方法时才会执行。
+
+## 例子
+
+```js
+function* gen(){
+    console.log('first');
+    yield 1; // stop
+    console.log('second');
+    yield 2; // stop
+    console.log('third');
+    yield 3; // stop
+    console.log('fourth');
+}
+
+let gg = gen(); 
+gen.next(); // first {value: 1, done: false}
+gen.next(); // second {value: 2, done: false}
+gen.next(); // third {value: 3, done: false}
+gen.next(); // fourth {value: undefined, done: true}
+gen.next(); // {value: undefined, done: true}
+```
+
+Generator函数可以不用yield表达式，这时就变成了一个单纯的暂缓执行函数。
+
+```js
+function* f(){
+    console.log('执行了！');
+}
+
+let ff = f(); 
+ff.next(); // 执行了！
+```
+
+> forEach的参数是一个普通函数，使用yield会报错。
+
+## next()参数
+
+yield表达式本身没有返回值，或者说总是返回undefined。next方法可以带一个参数，该参数就会被当作上一个yield表达式的返回值。
+
+```js
+function* dataConsumer(){
+    console.log('start');
+    console.log(`1. ${yield}`);
+    console.log(`2. ${yield}`);
+	return 'result';
+}
+
+let dd = dataConsumer();
+dd.next(); // start {value: undefined, done: false}
+dd.next('a'); // 1. a {value: undefined, done: false} 
+dd.next('b'); // 2. b {value: 'result', done: true}
+dd.next('c'); // {value: undefined, done: true}
+```
+
+## for ... of 遍历Iterator
+
+```js
+function* foo(){
+    yield 1;
+    yield 2;
+    yield 3;
+    yield 4;
+    yield 5;
+    return 6;
+}
+
+for(let val of foo()){
+    console.log(val); // 1 2 3 4 5
+}
+```
+
+# Es6和Es5的继承有什么区别
 
 问题是继承的差异。
 
@@ -28,7 +744,7 @@ Sub.prototype.__proto__ === Super.prototype;
 
 而通过 ES5 的方式，Sub.**\_\_proto__** === Function.prototype
 
-### class类
+##class类
 
 ES6 的类，完全可以看作构造函数的另一种写法。`prototype`对象的`constructor`属性，直接指向“类”的本身，这与 ES5 的行为是一致的。
 
@@ -94,7 +810,7 @@ Point.name; // "Point"
 
 `name`属性总是返回紧跟在`class`关键字后面的类名。
 
-### 静态方法
+## 静态方法
 
 类相当于实例的原型，所有在类中定义的方法，都会被实例继承。如果在一个方法前，加上`static`关键字，就表示该方法不会被实例继承，而是直接通过类来调用，这就称为“静态方法”。
 
@@ -120,7 +836,7 @@ foo.classMethod()
 
 父类的静态方法，可以被子类继承。
 
-### 实例属性和静态属性
+## 实例属性和静态属性
 
 实例属性除了定义在`constructor()`方法里面的`this`上面，也可以定义在类的最顶层。
 
@@ -137,7 +853,7 @@ class MyClass {
 }
 ```
 
-### 继承
+## 继承
 
 Class 可以通过`extends`关键字实现继承。
 
@@ -160,7 +876,7 @@ class ColorPoint extends Point {
 
 在子类的构造函数中，只有调用`super`之后，才可以使用`this`关键字，否则会报错。这是因为子类实例的构建，基于父类实例，只有`super`方法才能调用父类实例。`spuer`中的`this`指向子类的实例。
 
-#### Object.getPrototypeOf()
+### Object.getPrototypeOf()
 
 `Object.getPrototypeOf`方法可以用来从子类上获取父类。
 
@@ -170,7 +886,7 @@ Object.getPrototypeOf(ColorPoint) === Point; // true
 
 因此，可以使用这个方法判断，一个类是否继承了另一个类。
 
-#### 类的 prototype 属性和__proto__属性
+### 类的 prototype 属性和__proto__属性
 
 大多数浏览器的 ES5 实现之中，**每一个对象都有`__proto__`属性，指向对应的构造函数的`prototype`属性**。Class 作为构造函数的语法糖，同时有`prototype`属性和`__proto__`属性，因此同时存在两条继承链。
 
@@ -377,9 +1093,9 @@ p1.__proto__ === p2.__proto__; //true
 
   上面代码定义了一个`MyArray`类，继承了`Array`构造函数，因此就可以从`MyArray`生成数组的实例。这意味着，ES6 可以自定义原生数据结构（比如`Array`、`String`等）的子类，这是 ES5 无法做到的。
 
-## 2. proxy & Reflect
+# proxy & Reflect
 
-### Proxy
+## Proxy
 
 **Proxy** 用于修改某些操作的默认行为，等同于在语言层面做出修改，所以属于一种“元编程”（meta programming），即对编程语言进行编程。
 
@@ -502,7 +1218,7 @@ fproxy.foo === "Hello, foo" // true
 - **apply(target, object, args)**：拦截 Proxy 实例作为函数调用的操作，比如`proxy(...args)`、`proxy.call(object, ...args)`、`proxy.apply(...)`。
 - **construct(target, args)**：拦截 Proxy 实例作为构造函数调用的操作，比如`new proxy(...args)`。
 
-### Reflect
+## Reflect
 
 `Reflect`对象的设计目的有这样几个。
 
@@ -586,7 +1302,7 @@ Function.prototype.apply.call(Math.floor, undefined, [1.75]) // 1
 Reflect.apply(Math.floor, undefined, [1.75]) // 1
 ```
 
-### 实例：使用Proxy实现观察者模式
+## 实例：使用Proxy实现观察者模式
 
 ```js
 const queudObservers = new Set();
@@ -613,51 +1329,9 @@ observe(print);
 person.name = 'xiaoming'; // xiaoming, 18
 ```
 
-## 3. SVG
+# Promise，async/await，setTimeout
 
-基本形状标记如下：
-
-```html
-<svg width="200" height="250" version="1.1" xmlns="http://www.w3.org/2000/svg">
-  <!-- 矩形 -->
-  <rect x="10" y="10" width="30" height="30" stroke="black" fill="transparent" stroke-width="5"/>
-  <rect x="60" y="10" rx="10" ry="10" width="30" height="30" stroke="black" fill="transparent" stroke-width="5"/>
-	<!-- 圆 -->
-  <circle cx="25" cy="75" r="20" stroke="red" fill="transparent" stroke-width="5"/>
-    <!-- 椭圆 -->
-  <ellipse cx="75" cy="75" rx="20" ry="5" stroke="red" fill="transparent" stroke-width="5"/>
-	<!-- 线条 -->
-  <line x1="10" x2="50" y1="110" y2="150" stroke="orange" fill="transparent" stroke-width="5"/>
-	<!-- 折线 -->
-  <polyline points="60 110 65 120 70 115 75 130 80 125 85 140 90 135 95 150 100 145"
-      stroke="orange" fill="transparent" stroke-width="5"/>
-	<!-- 多边形 -->
-  <polygon points="50 160 55 180 70 180 60 190 65 205 50 195 35 205 40 190 30 180 45 180"
-      stroke="green" fill="transparent" stroke-width="5"/>
-	<!-- 路径 -->
-  <path d="M20,230 Q40,205 50,230 T90,230" fill="none" stroke="blue" stroke-width="5"/>
-</svg>
-```
-
-### path
-
-| 命令     | 参数              | 描述                                                         |
-| :------- | ----------------- | ------------------------------------------------------------ |
-| M        | X Y               | Move to，绝对坐标，M命令仅仅是移动画笔，但不画线，<br />（M X Y）表示相对坐标 |
-| L        | X Y               | Line To，绝对坐标，在当前位置和新位置之间画一条线段，<br />（l dx dy）表示相对坐标 |
-| V        | Y                 | 绝对坐标，绘制垂直线（v y）同理，绝对坐标                    |
-| H        | X                 | 绝对坐标，绘制水平线（h x）同理，绝对坐标                    |
-| Z        | -                 | 从当前点画一条直线到路径的起点，不区分大小写                 |
-| 曲线列表 |                   |                                                              |
-| C        | x1 y1, x2 y2, x y | 三次贝塞尔曲线，参数依次为两个控制点和一个终点，<br />同理也包括小写相对坐标(c x1 y1, x2 y2, x y) |
-| S        | x2 y2, x y        | 续前对称控制点三次贝塞尔曲线，<br />同理小写相对坐标为(s dx2 dy2, dx dy) |
-| Q        | x1 y1, x y        | 二次贝塞尔曲线，参数依次为控制点和一个终点，<br />同理也包括小写相对坐标(q x1 y1, x y) |
-| T        | x y               | 续前对称控制点二次贝塞尔曲线，<br />同理小写相对坐标为(t dx dy) |
-|          |                   |                                                              |
-
-## 4.Promise, async/await, setTimeout
-
-### Promise
+## Promise
 
 **语法**
 
@@ -713,9 +1387,11 @@ new Promise(function(resolve){
 Promise.resolve();
 ```
 
-#### Promise说明
+### Promise说明
+
 - `Promise`一旦被解析会永远保持相同的解析结果（完成或拒绝）
 - `thenable`（鸭子类型检查）
+
 ```js
 if( p !== null && 
     (typeof p === 'function' || typeof p === 'object') && 
@@ -723,7 +1399,9 @@ if( p !== null &&
   // 认为它是一个thenable!
 }
 ```
+
 - 使用多个参数调用`resolve(..)`或`reject(..)`，所有第一个参数之外的后续参数都会被无声地忽略
+
 ```js
 new Promise((resolve) => {
       resolve(1,2,3)
@@ -733,20 +1411,23 @@ new Promise((resolve) => {
       console.log(arguments); //[1]
     });
 ```
+
 - Promise被定义为只能被解析一次。
+
 ```js
 new Promise((resolve, reject) => {
   resolve(1);
   reject(2); // 不会执行
 });
 ```
+
 - `Promise`解析或者创建过程中发生语法错误或者手动抛出错误，会强制当前的`Promise`变为拒绝
 - `resolve()`接收基础数据直接返回`fullfilled`的数据，接收一个`Promise`或者`thenable`的值，那么这个值将被递归地展开，而且无论它最终解析结果/状态是什么，都将被`promise`采用。。
 - `reject(..)` 不会像`resolve(..)`那样进行展开。如果你向`reject(..)`传递一个`Promise/thenable`值，这个没有被碰过的值将作为拒绝的理由。
 - `Promise.all([ .. ])`、`Promise.race([ .. ])`将会在任意一个`Promise`解析为拒绝时拒绝。
 - `Promise.resolve()`,传入一个纯粹的`Promise`，`Promise.resolve(..)`不会做任何事情,它仅仅会直接返回这个值，其它值得处理与`resolve`保存一致 
 
-#### 取消promise
+### 取消Promise
 
 1. 通过`Promise.race()`，设置超时机制来取消取消promise的执行
 2. 通过`throw new Error()`来终结调用链，可以给error设定标识信息代表手动的终止。
@@ -760,7 +1441,13 @@ Object.defineProperty(Promise, 'break', {
 
 ```
 
-### async
+### Promise 构造函数是同步执行还是异步执行，那么 then 方法呢
+
+Promise构造函数中的代码是同步执行，then方法是微任务，异步执行。
+
+Promise.resolve()中的代码是同步执行等
+
+## async
 
 **语法**
 
@@ -778,11 +1465,11 @@ async function name([param[, param[, ... param]]]) { statements }
 
 > `await` 关键字仅仅在 `async` function中有效。如果在 `async function`函数体外使用 `await` ，你只会得到一个语法错误（`SyntaxError`）。
 
-### await
+## await
 
 `await`  操作符用于等待一个[`Promise`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise) 对象。它只能在异步函数 [`async function`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/async_function) 中使用。
 
-**语法**
+### 语法
 
 ```js
 [return_value] = await expression;
@@ -790,7 +1477,7 @@ async function name([param[, param[, ... param]]]) { statements }
 
 **返回值**：返回 Promise 对象的处理结果。如果等待的不是 Promise 对象，则返回该值本身。
 
-#### 描述
+### 描述
 
 `await`经历两个步骤：
 
@@ -886,7 +1573,7 @@ async function async1() {
 }
 ```
 
-### 正题
+## 正题
 
 如下代码的输出结果：
 
@@ -1036,480 +1723,6 @@ async function async1() {
  }
 ```
 
-
-
 <https://segmentfault.com/q/1010000016147496/>
 
 <https://github.com/xianshenglu/blog/issues/60>
-
-## 5. Event Loop
-
-所有任务可以分成两种，一种是**同步任务（synchronous）**，另一种是**异步任务（asynchronous）**。同步任务指的是，在**主线程**上排队执行的任务，只有前一个任务执行完毕，才能执行后一个任务；异步任务指的是，不进入主线程、而进入"**任务队列**"（task queue）的任务，只有"任务队列"通知主线程，某个异步任务可以执行了，该任务才会进入主线程执行。
-
-### 宏任务macrotask
-
-**macrotask也叫tasks。** 一些异步任务的回调会依次进入macro task queue，等待后续被调用，这些异步任务包括：
-
-- setTimeout
-- setInterval
-- setImmediate (Node独有)
-- requestAnimationFrame (浏览器独有)
-- I/O
-
-### 微任务
-
-**microtask，也叫jobs。** 另一些异步任务的回调会依次进入micro task queue，等待后续被调用，这些异步任务包括：
-
-- process.nextTick (Node独有)
-- Promise
-- Object.observe
-- MutationObserver
-
-**具体步骤如下：**
-
-1. 执行全局Script同步代码，这些同步代码有一些是同步语句，有一些是异步语句（比如setTimeout等）；
-
-2. 全局Script代码执行完毕后，调用栈Stack会清空；
-
-3. 从微队列microtask queue中取出位于队首的回调任务，放入调用栈Stack中执行，执行完后microtask queue长度减1；
-
-4. 继续取出为队列中位于队首的任务，放入调用栈Stack中执行，以此类推，直到直到把microtask queue中的所有任务都执行完毕。**注意，如果在执行microtask的过程中，又产生了microtask，那么会加入到队列的末尾，也会在这个周期被调用执行**；
-
-5. microtask queue中的所有任务都执行完毕，此时microtask queue为空队列，调用栈Stack也为空；
-
-6. 取出宏队列macrotask queue中位于队首的任务，放入Stack中执行；
-
-7. 执行完毕后，调用栈Stack为空；
-
-8. 重复第3-7个步骤；
-
-9. 重复第3-7个步骤；
-
-**注意：**
-
-> 1. 宏队列macrotask一次只从队列中取一个任务执行，执行完后就去执行微任务队列中的任务；
-> 2. 微任务队列中所有的任务都会被依次取出来执行，直到microtask queue为空；
-> 3. 在执行微队列microtask queue中任务的时候，如果又产生了microtask，那么会继续添加到队列的末尾，也会在这个周期执行，直到microtask queue为空停止。
-> 4. UI rendering，它的节点是在执行完所有的microtask之后，下一个macrotask之前，紧跟着执行UI render。
-
-只要主线程空了，就会去读取"任务队列"，这就是JavaScript的运行机制。这个过程会不断重复。
-
-主线程从"任务队列"中读取事件，这个过程是循环不断的，所以整个的这种运行机制又称为Event Loop（事件循环）。
-
-## 6. 将数组扁平化并去除其中重复数据，最终得到一个升序且不重复的数组
-
-**方法一**
-
-```js
-function flat(arr) {
-    return Array.from(new Set(arr.flat(Infinity))).sort((a, b) => a - b);
-}
-```
-
-**方法二**
-
-```js
-Array.prototype.flat = function() {
-    return [].concat(...this.map(item => {
-        return Array.isArray(item) ? item.flat() : item;
-    }));
-}
-// 或
-Array.prototype.flat1 = function() {
-    return this.reduce((acc, item) => {
-        return acc.concat(Array.isArray(item) ? item.flat1() : item);
-    }, []);
-}
-
-Array.prototype.unique = function() {
-    return [...new Set(this)];
-}
-// 或
-// 基础类型数据
-Array.prototype.unique1 = function() {
-    let hashMap = {};
-    return this.filter(item => {
-      	// 区分类似1和'1' 
-        let key = typeof item + item;
-        return hashMap[key] === undefined ? (hashMap[key] = true) : false;
-    });
-}
-
-function flat(arr){
-  return arr.flat().unique().sort((a, b) => a - b);
-}
-```
-
-**方法三**
-
-```js
-// 全数字
-function flat(arr) {
-    return arr.toString().split(',').sort((a, b) => a - b).map(Number);
-}
-```
-
-
-
-## 7. 手动实现new
-
-### new操作如下：
-
-1. 创建一个空的简单JavaScript对象（即**`{}`**）
-
-2. 链接该对象（即设置该对象的构造函数）到另一个对象 
-
-3. 将步骤1新创建的对象作为**`this`**的上下文 
-
-4. 如果该函数没有返回对象，则返回**`this`**
-
-```js
-function myNew() {
-    let obj = {},
-        Constructor = Array.prototype.shift.call(arguments);
-
-    obj.__proto__ = Constructor.prototype;
-    let res = Constructor.apply(obj, arguments);
-    return typeof res === 'object' ? res : obj;
-}
-```
-
-
-
-## 8. JS 异步解决方案的发展历程以及优缺点
-
-#### 1. 回调函数（callback）
-
-```js
-setTimeout(() => {
-    // callback 函数体
-}, 1000)
-```
-
-**缺点：回调地狱，不能用 try catch 捕获错误，不能 return**
-
-回调地狱的根本问题在于：
-
-- 缺乏顺序性： 回调地狱导致的调试困难，和大脑的思维方式不符
-- 嵌套函数存在耦合性，一旦有所改动，就会牵一发而动全身，即（**控制反转**）
-- 嵌套函数过多的多话，很难处理错误
-
-```js
-ajax('XXX1', () => {
-    // callback 函数体
-    ajax('XXX2', () => {
-        // callback 函数体
-        ajax('XXX3', () => {
-            // callback 函数体
-        })
-    })
-})
-```
-
-**优点：解决了同步的问题**（只要有一个任务耗时很长，后面的任务都必须排队等着，会拖延整个程序的执行。）
-
-#### 2. Promise
-
-Promise就是为了解决callback的问题而产生的。
-
-Promise 实现了链式调用，也就是说每次 then 后返回的都是一个全新 Promise，如果我们在 then 中 return ，return 的结果会被 Promise.resolve() 包装
-
-**优点：解决了回调地狱的问题**
-
-```js
-ajax('XXX1')
-  .then(res => {
-      // 操作逻辑
-      return ajax('XXX2')
-  }).then(res => {
-      // 操作逻辑
-      return ajax('XXX3')
-  }).then(res => {
-      // 操作逻辑
-  })
-```
-
-**缺点：无法取消 Promise ，错误需要通过回调函数来捕获**
-
-to do by xc 取消Promise
-
-#### 3. Generator
-
-**特点：可以控制函数的执行**，可以配合 co 函数库使用
-
-```js
-function *fetch() {
-    yield ajax('XXX1', () => {})
-    yield ajax('XXX2', () => {})
-    yield ajax('XXX3', () => {})
-}
-let it = fetch()
-let result1 = it.next()
-let result2 = it.next()
-let result3 = it.next()
-```
-
-#### 4. Async/await
-
-async、await 是异步的终极解决方案
-
-**优点是：代码清晰，不用像 Promise 写一大堆 then 链，处理了回调地狱的问题**
-
-**缺点：await 将异步代码改造成同步代码，如果多个异步操作没有依赖性而使用 await 会导致性能上的降低。**
-
-```js
-async function test() {
-  // 以下代码没有依赖性的话，完全可以使用 Promise.all 的方式
-  // 如果有依赖性的话，其实就是解决回调地狱的例子了
-  await fetch('XXX1')
-  await fetch('XXX2')
-  await fetch('XXX3')
-}
-```
-
-下面来看一个使用 `await` 的例子：
-
-```js
-let a = 0
-let b = async () => {
-  a = a + await 10; // await返回10，让出线程，a = a + 10异步执行
-  console.log('2', a) // -> '2' 10
-}
-b()
-a++
-console.log('1', a) // -> '1' 1
-
-let a = 0
-let b = async () => {
-  a = (a = 2) + await 10; 
-  console.log('2', a) // -> '2' 12
-}
-b()
-a++
-console.log('1', a) // -> '1' 3
-```
-
-对于以上代码你可能会有疑惑，让我来解释下原因：
-
-1. 首先函数 b 先执行，在执行到 await 10 之前变量 a 还是 0，因为 await 内部实现了 generator ，generator 会保留堆栈中东西，所以这时候 a = 0 被保存了下来
-2. 因为 await 是异步操作，后面的表达式不返回 Promise 的话，就会包装成 Promise.reslove(返回值)，然后会去执行函数外的同步代码，也就是执行了 console.log('1', a) ，输出 '1' 1
-3. 同步代码执行完毕后开始执行异步代码，将保存下来的值拿出来使用，这时候 a = 0 + 10
-
-上述解释中提到了 await 内部实现了 generator，其实 await 就是 generator 加上 Promise的语法糖，且内部实现了自动执行 generator。
-
-## 9. Promise 构造函数是同步执行还是异步执行，那么 then 方法呢
-
-Promise构造函数中的代码是同步执行，then方法是微任务，异步执行。
-
-Promise.resolve()中的代码是同步执行等
-
-原理见如下`Promise`手动实现：(这个实现有问题，不满足pormise的语法)
-
-```js
-// promise状态常量
-const STATUS = {
-    PENDING: 0,
-    RESOLVED: 1,
-    REJECTED: 2
-}
-
-/**
- * 根据参数的不同，返回不同的结果
- * Promise实例：不作处理，直接返回
- * 具有then属性的方法：会将其转为Promise对象，并执行then方法
- * 参数不是具有then方法的对象， 或根本就不是对象: 返回一个新的 Promise 对象， 状态为resolved
- * 不带有任何参数:直接返回一个resolved状态的 Promise 对象。
- */
-function promiseResolve(value, resolve, reject) {
-    try {
-        if (typeof value === 'object' && value.then && typeof value.then === 'function') {
-            value.then(function(res) {
-                resolve(res);
-            }, function(err) {
-                reject(err);
-            });
-        } else {
-            resolve(value);
-        }
-    } catch (e) {
-        reject(e);
-    }
-}
-
-function Promise(executor) {
-    if (typeof executor !== 'function') {
-        throw new TypeError(`the resolver ${executor} must be a function.`);
-    }
-	
-    // 校正非new Promise()调用形式
-    if (!(this instanceof Promise)) {
-        return new Promise(executor);
-    }
-
-    let _this = this;
-
-    _this.status = STATUS.PENDING;
-    _this.resolvedCallbacks = [];
-    _this.rejectedCallbacks = [];
-    _this.result = '';
-
-    function resolve(res) {
-        if (_this.status === STATUS.PENDING) {
-            // 异步执行，保证所有同步的逻辑全部执行完成(then，catch等))
-            setTimeout(() => {
-                _this.status = STATUS.RESOLVED;
-                _this.result = res;
-                _this.resolvedCallbacks.forEach((item) => {
-                    item(res);
-                });
-            }, 0);
-        }
-    }
-
-    function reject(err) {
-        if (_this.status === STATUS.PENDING) {
-            setTimeout(() => {
-                _this.status = STATUS.REJECTED;
-                _this.result = err;
-                _this.rejectedCallbacks.forEach((item) => {
-                    item(err);
-                });
-            }, 0);
-        }
-    }
-
-    try {
-        executor(resolve, reject);
-    } catch (e) {
-        reject(e);
-    }
-}
-
-// 返回一个新的promise
-Promise.prototype.then = function(resolveFn, rejectFN) {
-    let _this = this,
-        newPromise;
-
-    resolveFn = typeof resolveFn === 'function' ? resolveFn : function(res) {
-        return res;
-    };
-    rejectFN = typeof rejectFN === 'function' ? rejectFN : function(err) {
-        throw err;
-    }
-
-    switch (_this.status) {
-        case STATUS.RESOLVED:
-            newPromise = new Promise((resolve, reject) => {
-                try {
-                    let val = resolveFn(_this.result);
-                    promiseResolve(val, resolve, reject);
-                } catch (e) {
-                    return reject(e);
-                }
-            });
-            break;
-        case STATUS.REJECTED:
-            newPromise = new Promise((resolve, reject) => {
-                try {
-                    let val = rejectFN(_this.result);
-                    promiseResolve(val, resolve, reject);
-                } catch (e) {
-                    return reject(e);
-                }
-            });
-            break;
-        default:
-            newPromise = new Promise((resolve, reject) => {
-                _this.resolvedCallbacks.push(function(data) {
-                    try {
-                        let val = resolveFn(data);
-                        promiseResolve(val, resolve, reject);
-                    } catch (e) {
-                        return reject(e);
-                    }
-                });
-                _this.rejectedCallbacks.push(function(data) {
-                    try {
-                        let val = rejectFN(data);
-                        promiseResolve(val, resolve, reject);
-                    } catch (e) {
-                        return reject(e);
-                    }
-                });
-            });
-            break;
-    }
-
-    return newPromise;
-}
-
-Promise.prototype.catch = function(rejectFN) {
-    return this.then(null, rejectFN);
-}
-
-Promise.resolve = function(val) {
-    let promise = new Promise((resolve, reject) => {
-        promiseResolve(val);
-    });
-    return promise;
-}
-
-Promise.reject = function(val) {
-    let promise = new Promise((resolve, reject) => {
-        reject(val);
-    });
-    return promise;
-}
-
-// 如果传入的参数是一个空的可迭代对象，那么此promise对象回调完成(resolve),只有此情况，是同步执行的，其它都是异步返回的。
-// 如果传入的参数不包含任何 promise， 则返回一个异步完成。
-// 如果参数中有一个promise失败，那么Promise.all返回的promise对象失败。
-// 在任何情况下， Promise.all 返回的 promise 的完成状态的结果都是一个数组。
-Promise.all = function(promises) {
-    return new Promise((resolve, reject) => {
-        let index = 0;
-        let result = [];
-        if (promises.length === 0) {
-            resolve(result);
-        } else {
-            setTimeout(() => {
-                function processValue(i, data) {
-                    result[i] = data;
-                    if (++index === promises.length) {
-                        resolve(result);
-                    }
-                }
-                for (let i = 0; i < promises.length; i++) {
-                    //promises[i] 可能是普通值
-                    Promise.resolve(promises[i]).then((data) => {
-                        processValue(i, data);
-                    }, (err) => {
-                        reject(err);
-                        return;
-                    });
-                }
-            })
-        }
-    });
-}
-
-// 不管成功还是失败，都会走到finally中,并且finally之后，还可以继续then。并且会将值原封不动的传递给后面的then。
-Promise.prototype.finally = function(callback) {
-    return this.then((value) => {
-        return Promise.resolve(callback()).then(() => {
-            return value;
-        });
-    }, (err) => {
-        return Promise.resolve(callback()).then(() => {
-            throw err;
-        });
-    });
-}
-
-module.exports = Promise;
-```
-
-## 10. Async/Await 如何通过同步的方式实现异步
-
-未完待续
-

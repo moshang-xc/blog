@@ -1,35 +1,11 @@
-# ms宝典
-记录面试中的高频问题，和一些面试技巧，基础知识等
-[参考链接](https://segmentfault.com/a/1190000018155877)
 
-https://segmentfault.com/a/1190000018794544
-https://mp.weixin.qq.com/s/lvGmT7KbdNzfEvQB9-tgrw
 
 ## css
 
 ### 盒模型
-border-box
-content-box
-
 ### BFC
 
 ### 移动端适配
-
-#### 概念介绍
-1. 英寸
-一般用英寸描述屏幕的物理大小，如电脑显示器的17、22，手机显示器的4.8、5.7等使用的单位都是英寸。需要注意，上面的尺寸都是屏幕对角线的长度。
-英寸和厘米的换算：1英寸 = 2.54 厘米
-
-2. 分辨率
-- 像素：一个小方块，它具有特定的位置和颜色。
-- 屏幕分辨率：屏幕分辨率指一个屏幕具体由多少个像素点组成，iPhone SE的分辨率为1136 x 640
-- 图像分辨率：图片含有的像素数，比如一张图片的分辨率为800 x 400。这表示图片分别在垂直和水平上所具有的像素点数为800和400。
-- PPI(Pixel Per Inch)每英寸包括的像素数。((水平像素平方+垂直像素平方)平方根/英寸)
-- DPI(Dot Per Inch)：即每英寸包括的点数。
-
-3. 设备物理像素
-4. 设备独立像素(Device Independent Pixels) CSS像素 =设备独立像素 = 逻辑像素
-5. 设备像素比(device pixel ratio)简称dpr，即物理像素和设备独立像素的比值
 
 ## js
 
@@ -42,17 +18,7 @@ content-box
 **insranceof实现**
 
 ### 闭包
-闭包是指有权访问另一个函数作用域中的变量的函数，创建闭包最常用的方式就是在一个函数内部创建另一个函数。
-
-闭包的作用有:
-- 封装私有变量
-- 模仿块级作用域(ES5中没有块级作用域)
-- 实现JS的模块
-
 ### this指向问题
-- 自执行函数的`this`指向`window`
-- 把 null 或者 undefined 作为 this 的绑定对象传入 call、apply 或者 bind, 这些值在调用时会被忽略，实际应用的是默认绑定规则(在严格模式下，则绑定到 undefined，否则绑定到全局对象)。
-
 ### 词法作用域和this的区别。
 - 词法作用域是由你在写代码时将变量和块作用域写在哪里来决定的
 - `this`是在调用时被绑定的，`this`指向什么，完全取决于函数的调用位置(关于this的指向问题，本文已经有说明)
@@ -67,7 +33,7 @@ content-box
 - 原始数据类型：undefined，null，bool，string，number，symbol
 - 虽然 typeof null 返回的值是 object,但是null不是对象，而是基本数据类型的一种
 - 原始数据类型存储在栈内存，存储的是值。
-- 复杂数据类型存储在堆内存，存储的是地址。当我们把对象赋值给另外一个变量的时候，复制的是地址，指向同一块内存空间，当其中一个对象改变时，另一个对象也会变化。
+- 复杂数据类型存储在堆内存，地址存储在栈内存中。当我们把对象赋值给另外一个变量的时候，复制的是地址，指向同一块内存空间，当其中一个对象改变时，另一个对象也会变化。
 
 > 栈：由操作系统自动分配释放 ，存放函数的参数值，局部变量的值等。其操作方式类似于数据结构中的栈。
 > 堆：一般由程序员分配释放， 若程序员不释放，程序结束时可能由OS回收，分配方式倒是类似于链表。
@@ -80,7 +46,7 @@ content-box
 - 浏览器的JS执行引擎总是访问栈顶的执行上下文。
 - 全局上下文只有唯一的一个，它在浏览器关闭时出栈。
 
-作用域链: 无论是 LHS 还是 RHS 查询，都会在当前的作用域开始查找，如果没有找到，就会向上级作用域继续查找目标标识符，每次上升一个作用域，一直到全局作用域为止。
+作用域链: 在当前的作用域开始查找，如果没有找到，就会向上级作用域继续查找目标标识符，每次上升一个作用域，一直到全局作用域为止。
 
 ### 类型转换
 大家都知道 JS 中在使用运算符号或者对比符时，会自带隐式转换，规则如下:
@@ -177,7 +143,7 @@ promise有三种状态: `fulfilled`, `rejected`, `resolved`.
 - 无法取消 Promise
 - 当处于pending状态时，无法得知目前进展到哪一个阶段
 
-Promise 是微任务，setTimeout 是宏任务，同一个事件循环中，promise.then总是先于 setTimeout 执行。同一个事件循环中，promise.then 先于 setTimeout 执行。
+Promise 是微任务，setTimeout 是宏任务，同一个事件循环中，promise.then总是先于 setTimeout 执行。
 
 ### 在JS中什么是变量提升？什么是暂时性死区？
 
@@ -234,8 +200,8 @@ console.log(sumFn(1)(2, 3)); //6
 * push / pop: 末尾推入和弹出，改变原数组， 返回推入/弹出项
 * unshift / shift: 头部推入和弹出，改变原数组，返回操作项
 * sort(fn) / reverse: 排序与反转，改变原数组
-* concat: 连接数组，不影响原数组， 浅拷贝
-* slice(start, end): 返回截断后的新数组，不改变原数组
+* concat: 连接数组，**不影响原数组**， 浅拷贝
+* slice(start, end): 返回截断后的新数组，**不改变原数组**
 * splice(start, number, value...): 返回删除元素组成的数组，value 为插入项，改变原数组
 * indexOf / lastIndexOf(value, fromIndex): 查找数组项，返回对应的下标
 * reduce / reduceRight(fn(prev, cur)， defaultPrev): 两两执行，prev 为上次化简函数的return值，cur 为当前值(从第二项开始)
@@ -259,7 +225,7 @@ Array.from(arrayLike);
 
 修改原数组的API有:`splice/reverse/fill/copyWithin/sort/push/pop/unshift/shift`
 
-不修改原数组的API有:`slice/map/forEach/every/filter/reduce/entry/entries/find`
+不修改原数组的API有:`slice/concat/map/forEach/every/filter/reduce/entry/entries/find`
 
 ### 数组取最大值
 ```js
@@ -285,21 +251,6 @@ Math.max(...[14, 3, 77, 30]);
 
 ## 浏览器
 ### 跨标签页通信
-
-### Event Loop事件循环
-- 宏任务包括：`script(整体代码)`, `setTimeout`, `setInterval`, `requestAnimationFrame`, `I/O`,`setImmediate`。
-
-其中`setImmediate`只存在于Node中，`requestAnimationFrame`只存在于浏览器中。
-
-- 微任务包括： `Promise`, `Object.observe`(已废弃), `MutationObserver`(html5新特性)，`process.nextTick`。
-
-其中`process.nextTick`只存在于Node中，`MutationObserver`只存在于浏览器中。
-
-`UI Rendering`不属于宏任务，也不属于微任务，它是一个与微任务平行的一个操作步骤。
-
-> 执行一个宏任务，过程中遇到微任务时，将其放到微任务的事件队列里，当前宏任务执行完成后，会查看微任务的事件队列，依次执行里面的微任务。如果还有宏任务的话，再重新开启宏任务……
-
-![img](https://user-gold-cdn.xitu.io/2019/7/6/16bc6bd331a2116a?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
 
 ### 存储
 短暂性的时候，我们只需要将数据存在内存中，只在运行时可用
