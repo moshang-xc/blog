@@ -68,7 +68,7 @@ computed对于的watcher.dirty记录是否需要重新计算
 - 当我们需要进行数值计算，并且依赖于其它数据时，应该使用 computed，因为可以利用 computed 的缓存特性，避免每次获取值时，都要重新计算；
 - 使用 watch 选项允许我们执行异步操作 ( 访问一个 API )，限制我们执行该操作的频率，并在我们得到最终结果前，设置中间状态。这些都是计算属性无法做到的。
 
-## 2. Vue监听数据变化原理
+## 2. Vue监听数组变化原理
 
 重写数组实例的原型对象`__proto__`，添加`dep.notify()`。
 
@@ -164,6 +164,8 @@ methodsToPatch.forEach(function (method) {
 
 第一次激活时 先mounted再activated，mounted就第一次唤醒的时候执行一次，唤醒后会再次执行activated
 
+### 原理分析（源代码）
+
 ## 6. v-model
 
 v-model 本质上不过是语法糖，v-model 在内部为不同的输入元素使用不同的属性并抛出不同的事件：
@@ -199,6 +201,8 @@ export default {
 
 ## 7. 组件间通信
 
+- EventBus(事件中心、事件总线)
+
 - **`props / $emit` 适用 父子组件通信**
 - **`ref` 与 `$parent / $children` 适用 父子组件通信**
 - **`$attrs`/`$listeners` 适用于 隔代组件通信**
@@ -213,10 +217,25 @@ export default {
 
 - **Vuex  适用于 父子、隔代、兄弟组件通信**
 
-  Vuex 是一个专为 Vue.js 应用程序开发的状态管理模式。每一个 Vuex 应用的核心就是 store（仓库）。“store” 基本上就是一个容器，它包含着你的应用中大部分的状态 ( state )。
+```js
+var EventBus = new Vue();
 
-  - Vuex 的状态存储是响应式的。当 Vue 组件从 store 中读取状态的时候，若 store 中的状态发生变化，那么相应的组件也会相应地得到高效更新。
-  - 改变 store 中的状态的唯一途径就是显式地提交  (commit) mutation。这样使得我们可以方便地跟踪每一个状态的变化。
+Object.defineProperties(Vue.prototype, {
+  $bus: {
+    get: function () {
+      return EventBus
+    }
+  }
+})
+
+this.$bus.$emit('nameOfEvent', { ... pass some event data ...});
+
+this.$bus.$on('nameOfEvent',($event) => {
+  // ...
+})
+```
+
+
 
 ## 父组件调用子组件的生命周期函数
 
@@ -225,8 +244,6 @@ export default {
 ```vue
 <mychild @hook:mounted="log"></mychild>
 ```
-
-
 
 ## 8. SSR
 
@@ -425,6 +442,24 @@ Vue.prototype.$on = function(event: string | Array < string > , fn: Function): C
 
 ## 16. 异步组件
 
+组件使用到的时候才进行下载，同时可将异步组件的文件单独打包，进行文件拆分
+
+```js
+const AsyncComponent = () => ({
+  // 需要加载的组件 (应该是一个 `Promise` 对象)
+  component: import('./MyComponent.vue'),
+  // 异步组件加载时使用的组件
+  loading: LoadingComponent,
+  // 加载失败时使用的组件
+  error: ErrorComponent,
+  // 展示加载时组件的延时时间。默认值是 200 (毫秒)
+  delay: 200,
+  // 如果提供了超时时间且组件加载也超时了，
+  // 则使用加载失败时使用的组件。默认值是：`Infinity`
+  timeout: 3000
+});
+```
+
 ## 17. Vue项目优化
 
 ### 代码层面
@@ -481,6 +516,10 @@ vue3.0 的改变是全面的，上面只涉及到主要的 3 个方面，还有�
 - 支持自定义渲染器，从而使得 weex 可以通过自定义渲染器的方式来扩展，而不是直接 fork 源码来改的方式。
 - 支持 Fragment（多个根节点）和 Protal（在 dom 其他部分渲染组建内容）组件，针对一些特殊的场景做了处理。
 - 基于 treeshaking 优化，提供了更多的内置功能。
+
+## beforeDestroy和destroyed分别卸载了哪些东西
+
+
 
 # vue-router
 
@@ -577,87 +616,5 @@ history.go(2)
 // URL 显示为 http://example.com/example.html?page=3
 ```
 
-
-
-## vue源码段
-
-**Vue.extend**
-
-```js
-
-  /**
-   * 构造Vue的子类VueComponent
-   * Class inheritance
-   */
-  Vue.extend = function (extendOptions: Object): Function {
-    extendOptions = extendOptions || {}
-    const Super = this
-    const SuperId = Super.cid
-    const cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {})
-    if (cachedCtors[SuperId]) {
-      return cachedCtors[SuperId]
-    }
-
-    const name = extendOptions.name || Super.options.name
-    if (process.env.NODE_ENV !== 'production' && name) {
-      validateComponentName(name)
-    }
-
-    const Sub = function VueComponent (options) {
-      this._init(options)
-    }
-    // Object.create方法创建一个新对象，使用现有的对象来提供新创建的对象的__proto__
-    Sub.prototype = Object.create(Super.prototype)
-    Sub.prototype.constructor = Sub
-    Sub.cid = cid++
-    // 如下一步将Vue.options深拷贝到Sub.options中去了，
-    // 这样createComponent中  const baseCtor = context.$options._base指向Vue
-    Sub.options = mergeOptions(
-      Super.options,
-      extendOptions
-    )
-    Sub['super'] = Super
-
-    // For props and computed properties, we define the proxy getters on
-    // the Vue instances at extension time, on the extended prototype. This
-    // avoids Object.defineProperty calls for each instance created.
-    if (Sub.options.props) {
-      initProps(Sub)
-    }
-    if (Sub.options.computed) {
-      initComputed(Sub)
-    }
-
-    // allow further extension/mixin/plugin usage
-    Sub.extend = Super.extend
-    Sub.mixin = Super.mixin
-    Sub.use = Super.use
-
-    // create asset registers, so extended classes
-    // can have their private assets too.
-    ASSET_TYPES.forEach(function (type) {
-      Sub[type] = Super[type]
-    })
-    // enable recursive self-lookup
-    if (name) {
-      Sub.options.components[name] = Sub
-    }
-
-    // keep a reference to the super options at extension time.
-    // later at instantiation we can check if Super's options have
-    // been updated.
-    Sub.superOptions = Super.options
-    Sub.extendOptions = extendOptions
-    Sub.sealedOptions = extend({}, Sub.options)
-
-    // cache constructor
-    cachedCtors[SuperId] = Sub
-    return Sub
-  }
-}
-```
-
-# 
-
-
+## 钩子函数
 

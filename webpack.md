@@ -8,7 +8,7 @@
 
 ## loader
 
-对内容进行处理转换，返回转换后的结果。类似前置的工作，将内容翻译成机器可以读得懂的语言吧。
+对内容进行处理转换，返回转换后的结果。类似前置的工作，将内容翻译成机器可以读得懂的语言。
 
 可配置`enforce` 强制执行 `loader` 的作用顺序，`pre` 代表在所有正常 loader 之前执行，`post` 是所有 loader 之后执行
 
@@ -16,9 +16,11 @@
 
 与 file-loader 类似，区别是用户可以设置一个阈值，大于阈值会交给 file-loader 处理，小于阈值时返回文件 base64 形式编码
 
-- vue-loader
-- sass-loade，postcss-loader，css-loader，style-loader
-- babel-loader
+### vue-loader
+
+### sass-loade，postcss-loader，css-loader，style-loader
+
+### babel-loader
 
 ## plugin
 
@@ -40,28 +42,25 @@
 ## 打包速度提升
 
 - speed-measure-webpack-plugin量化打包时间，逐个优化
+
 - HardSourceWebpackPlugin为模块提供中间缓存
+
 - **缩小打包作用域**
+  
   - exclude/include (确定 loader 规则范围)
   - resolve.modules 指明第三方模块的绝对路径
   - resolve.extensions 尽可能减少后缀尝试的可能性
   - resolve.alias 合理使用别名
   - noParse 对完全不需要解析的库进行忽略
+  
 - 缓存：babel-loader开启缓存`cacheDirectory`或使用**cache-loader**
+
 - 多进程：happypack/thread-loader
+
 - DLL：dllPlugin进行分包
 
+##  配置项说明
 
-
-## 插件
-
-[webpack](https://github.com/webpack/webpack) 即 webpack 核心库。它提供了很多 [API](https://webpack.js.org/api/node/), 通过 Node.js 脚本中 `require('webpack')` 的方式来使用 webpack。
-
-[webpack-cli](https://github.com/webpack/webpack-cli) 是 webpack 的命令行工具。让我们可以不用写打包脚本，只需配置打包配置文件，然后在命令行输入 `webpack-cli --config webpack.config.js` 来使用 webpack, 简单很多。webpack 4 之前命令行工具是集成在 webpack 包中的，4.0 开始 webpack 包本身不再集成 cli。
-
-[webpack-serve](https://github.com/webpack-contrib/webpack-serve) 是 webpack 提供的用来开发调试的服务器，让你可以用 http://127.0.0.1:8080/ 这样的 url 打开页面来调试，有了它就不用配置 [nginx](https://nginx.org/en/) 了，方便很多。
-
-`webpack-dev-server`
 
 ```js
 const { resolve } = require('path')
@@ -318,11 +317,11 @@ if (dev) {
 
 `hash` 和每次 `build`有关，没有任何改变的情况下，每次编译出来的 `hash`都是一样的，但当你改变了任何一点东西，它的`hash`就会发生改变。
 
-简单理解，你改了任何东西，`hash` 就会和上次不一样了。
+简单理解，你改了任何东西，`hash` 就会和上次不一样了。是项目构建的哈希值。
 
 - **chunkhash**
 
-`chunkhash`是根据具体每一个模块文件自己的的内容包括它的依赖计算所得的`hash`，所以某个文件的改动只会影响它本身的`hash`，不会影响其它文件。
+`chunkhash`是根据不同的入口文件(Entry)进行依赖文件解析、构建对应的 chunk，生成对应的哈希值。同一chunk下的文件的哈希值是一样的。
 
 - **contenthash**
 
@@ -331,6 +330,3 @@ if (dev) {
 这个时候我们就可以使用`contenthash`了，保证即使`css`文件所处的模块里有任何内容的改变，只要 css 文件内容不变，那么它的`hash`就不会发生变化。
 
 `contenthash` 你可以简单理解为是 `moduleId` + `content` 所生成的 `hash`。
-
-# 
-
