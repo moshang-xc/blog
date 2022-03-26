@@ -343,10 +343,10 @@ server.listen(8009, () => {
 前提是服务器要支持**范围请求**，要支持这个功能，就必须加上这样一个响应头:
 
 ```
-Accept-Ranges: none
+Accept-Ranges: bytes
 ```
 
-用来告知客户端这边是支持范围请求的。
+用来告知客户端这边是支持范围请求的。如果在响应中存在 `Accept-Ranges` 首部（并且它的值不为 “none”），那么表示该服务器支持范围请求。
 
 ### Range 字段拆解
 
@@ -825,3 +825,11 @@ http1.0使用`expires`（过期时间）进行控制，因为存在服务器和�
 [HTTP灵魂之问，巩固你的 HTTP 知识体系](https://juejin.im/post/5e76bd516fb9a07cce750746#heading-74)
 
 http://47.98.159.95/my_blog/
+
+
+
+# 大文件传输
+
+核心思想是通过http范围请求，请求头带上`Range` 字段，响应头带上`Accept-Ranges`字段：https://juejin.cn/post/6954868879034155022
+
+![img](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0061dc3394644725a61a2414a3690c8b~tplv-k3u1fbpfcp-watermark.awebp)

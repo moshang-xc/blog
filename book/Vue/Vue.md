@@ -61,6 +61,8 @@ export default function hocComponent(wrappedComponent){
 
 computed对于的watcher.dirty记录是否需要重新计算
 
+不能进行异步操作
+
 **watch：** 更多的是「观察」的作用，类似于某些数据的监听回调 ，每当监听的数据变化时都会执行回调进行后续操作；
 
 **运用场景：**
@@ -618,3 +620,28 @@ history.go(2)
 
 ## 钩子函数
 
+### 全局
+
+#### beforeEach((to, from, next) => {})
+
+
+
+#### beforeResolve
+
+在导航被确认之前，**同时在所有组件内守卫和异步路由组件被解析之后**，解析守卫就被调用。
+
+#### afterEach((to, from) => {})
+
+### 组件内
+
+#### beforeRouteEnter 
+
+在渲染该组件的对应路由被 confirm 前调用，不！能！获取组件实例 `this`。
+
+#### beforeRouteUpdate
+
+在当前路由改变，但是该组件被复用时调用
+
+#### beforeRouteLeave
+
+导航离开该组件的对应路由时调用，可以访问组件实例 `this`。
