@@ -1,3 +1,9 @@
+/**
+* 注意事项
+* 全局安装sass
+* npm i sass -g
+*/
+
 const fs = require("fs");
 const path = require("path");
 
